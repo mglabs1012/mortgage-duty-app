@@ -309,7 +309,8 @@ export default function App() {
             </p>
           </div>
           <p className="font-inter text-xs text-white/60">
-            ≈ Approximate · {category} · <a href="https://egras.rajasthan.gov.in/">Verify on the E-gras</a>
+            ≈ Approximate · {category} · <a href="https://egras.rajasthan.gov.in/" style=
+                                          "text-decoration: underline; color: white;">Verify on the E-gras</a>
           </p>
         </div>
 
