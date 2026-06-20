@@ -309,7 +309,7 @@ export default function App() {
             </p>
           </div>
           <p className="font-inter text-xs text-white/60">
-            ≈ Approximate · {category} · subject to final SRO valuation
+            ≈ Approximate · {category} · <a href="https://egras.rajasthan.gov.in/">Verify on the E-gras</a>
           </p>
         </div>
 
