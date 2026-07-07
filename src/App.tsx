@@ -124,6 +124,10 @@ const FAQ_ITEMS = [
     q: "Are these figures final and legally binding?",
     a: "No. All figures are approximate estimates for guidance only, aligned to the Rajasthan e-GRAS calculation logic. Always verify the final applicable value and dues with your Sub-Registrar office or the official e-GRAS portal before payment.",
   },
+  {
+    q: "Is this a government-authorized platform?",
+    a: "No, it is not. This app/website is for informational purposes only.",
+  },
 ];
 
 const faqSchema = {
