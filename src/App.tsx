@@ -34,6 +34,11 @@ const SURCHARGE_RATES = {
   naturalCalamity: 0.1, // Natural Calamity Surcharge
 };
 
+const STAMP_RATE = { standard: 0.0025, msme: 0.00125 };
+const STAMP_CAP = { standard: 1500000, msme: 1000000 };
+const REG_RATE = 0.005;
+const REG_CAP = 100000;
+
 const inr = (n: number): string =>
   new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -84,6 +89,53 @@ function LedgerRow({ icon: Icon, label, hindi, value, capped }: LedgerRowProps) 
   );
 }
 
+const FAQ_ITEMS = [
+  {
+    q: "What is the stamp duty rate for a mortgage or loan deed in Rajasthan?",
+    a: `Stamp duty is ${pct(STAMP_RATE.standard)}% of the loan amount for standard borrowers (capped at ${inr(
+      STAMP_CAP.standard
+    )}), and ${pct(STAMP_RATE.msme)}% for MSME-registered borrowers (capped at ${inr(STAMP_CAP.msme)}).`,
+  },
+  {
+    q: "What surcharges apply on top of stamp duty?",
+    a: `Three surcharges are levied on the stamp duty amount: Infrastructure Development Surcharge (${pct(
+      SURCHARGE_RATES.infrastructure
+    )}%), Cow Protection Surcharge (${pct(SURCHARGE_RATES.cowProtection)}%), and Natural Calamity Surcharge (${pct(
+      SURCHARGE_RATES.naturalCalamity
+    )}%) — together adding ${pct(
+      SURCHARGE_RATES.infrastructure + SURCHARGE_RATES.cowProtection + SURCHARGE_RATES.naturalCalamity
+    )}% to the base stamp duty.`,
+  },
+  {
+    q: "How is the registration fee calculated?",
+    a: `Registration fee is ${pct(REG_RATE)}% of the loan amount, capped at ${inr(REG_CAP)}.`,
+  },
+  {
+    q: "What is the CSI portal charge?",
+    a: `A flat ${inr(CSI_CHARGE)} CSI (Common Software for Integrated services) portal charge applies when the loan amount exceeds ${inr(
+      CSI_MIN_LOAN
+    )}.`,
+  },
+  {
+    q: "Is the MSME concession applied automatically?",
+    a: "No — select the MSME category only if the borrower holds a valid Udyam/MSME registration. The concessional stamp duty rate applies only to eligible MSME loans.",
+  },
+  {
+    q: "Are these figures final and legally binding?",
+    a: "No. All figures are approximate estimates for guidance only, aligned to the Rajasthan e-GRAS calculation logic. Always verify the final applicable value and dues with your Sub-Registrar office or the official e-GRAS portal before payment.",
+  },
+];
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ_ITEMS.map((item) => ({
+    "@type": "Question",
+    name: item.q,
+    acceptedAnswer: { "@type": "Answer", text: item.a },
+  })),
+};
+
 export default function App() {
   const [raw, setRaw] = useState<string>("");
   const [category, setCategory] = useState<"Standard" | "MSME">("Standard");
@@ -94,8 +146,8 @@ export default function App() {
   const isMsme = category === "MSME";
 
   // ---- Statutory engine (Rajasthan 2026, e-GRAS aligned) ----
-  const stampRate = isMsme ? 0.00125 : 0.0025;
-  const stampCap = isMsme ? 1000000 : 1500000;
+  const stampRate = isMsme ? STAMP_RATE.msme : STAMP_RATE.standard;
+  const stampCap = isMsme ? STAMP_CAP.msme : STAMP_CAP.standard;
   const rawStamp = loanAmount * stampRate;
   const stampCapped = rawStamp > stampCap;
   const stampDuty = Math.round(Math.min(rawStamp, stampCap));
@@ -104,8 +156,8 @@ export default function App() {
   const cowSurcharge = Math.round(stampDuty * SURCHARGE_RATES.cowProtection);
   const calamitySurcharge = Math.round(stampDuty * SURCHARGE_RATES.naturalCalamity);
 
-  const regCap = 100000;
-  const rawReg = loanAmount * 0.005;
+  const regCap = REG_CAP;
+  const rawReg = loanAmount * REG_RATE;
   const regCapped = rawReg > regCap;
   const regFee = Math.round(Math.min(rawReg, regCap));
 
@@ -462,6 +514,45 @@ export default function App() {
           valuation by the Sub-Registrar. Verify against the prevailing Rajasthan
           Stamp &amp; Registration / e-GRAS schedule before relying on them.
         </p>
+
+        {/* SEO content — real, crawlable explainer + FAQ (native <details>, no JS required to read) */}
+        <section
+          aria-labelledby="faq-heading"
+          className="no-print rounded-2xl bg-white p-4 shadow-lg ring-1 ring-slate-200/70 sm:p-5"
+        >
+          <h2
+            id="faq-heading"
+            className="font-poppins text-sm font-bold text-slate-800"
+          >
+            Rajasthan Stamp Duty &amp; Registration — FAQs
+          </h2>
+          <p className="mt-1.5 font-inter text-xs leading-relaxed text-slate-500">
+            This calculator estimates statutory dues on a mortgage or loan
+            deed registered in Rajasthan — stamp duty, the Infrastructure,
+            Cow Protection &amp; Natural Calamity surcharges, registration
+            fee, and CSI portal charge — aligned with the Rajasthan e-GRAS
+            calculation logic.
+          </p>
+          <div className="mt-3 divide-y divide-slate-100">
+            {FAQ_ITEMS.map((item) => (
+              <details key={item.q} className="group py-2.5 first:pt-0 last:pb-0">
+                <summary className="cursor-pointer list-none font-inter text-sm font-semibold text-slate-700 marker:content-none">
+                  <span className="flex items-center justify-between gap-2">
+                    {item.q}
+                    <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
+                  </span>
+                </summary>
+                <p className="mt-1.5 font-inter text-xs leading-relaxed text-slate-500">
+                  {item.a}
+                </p>
+              </details>
+            ))}
+          </div>
+        </section>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
       </div>
     </div>
   );

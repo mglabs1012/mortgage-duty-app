@@ -9,7 +9,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "icons.svg"],
+      includeAssets: ["favicon.svg", "icons.svg", "robots.txt", "sitemap.xml", "og-image.png"],
       manifest: {
         name: "Rajasthan Stamp Duty Calculator",
         short_name: "RJ Duty Calc",
