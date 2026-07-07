@@ -50,7 +50,7 @@ const inr = (n: number): string =>
 const grouped = (digits: string): string =>
   digits ? new Intl.NumberFormat("en-IN").format(Number(digits)) : "";
 
-const pct = (rate: number) => Math.round(rate * 100);
+const pct = (rate: number): string => (rate * 100).toFixed(3).replace(/\.?0+$/, "");
 
 type LedgerRowProps = {
   icon: React.ElementType;
@@ -533,16 +533,17 @@ export default function App() {
             fee, and CSI portal charge — aligned with the Rajasthan e-GRAS
             calculation logic.
           </p>
-          <div className="mt-3 divide-y divide-slate-100">
+          <div className="mt-3 space-y-2">
             {FAQ_ITEMS.map((item) => (
-              <details key={item.q} className="group py-2.5 first:pt-0 last:pb-0">
-                <summary className="cursor-pointer list-none font-inter text-sm font-semibold text-slate-700 marker:content-none">
-                  <span className="flex items-center justify-between gap-2">
-                    {item.q}
-                    <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
-                  </span>
+              <details
+                key={item.q}
+                className="group rounded-xl bg-slate-50 ring-1 ring-slate-200/70 transition-colors open:bg-blue-50/60 open:ring-blue-200"
+              >
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 font-inter text-sm font-semibold text-slate-700 marker:content-none">
+                  {item.q}
+                  <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180 group-open:text-blue-600" />
                 </summary>
-                <p className="mt-1.5 font-inter text-xs leading-relaxed text-slate-500">
+                <p className="px-3 pb-3 font-inter text-xs leading-relaxed text-slate-500">
                   {item.a}
                 </p>
               </details>
@@ -553,6 +554,16 @@ export default function App() {
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
         />
+
+        {/* Footer */}
+        <footer className="px-1 pb-1 text-center font-inter text-xs text-slate-400">
+          <p>
+            &copy; {new Date().getFullYear()} Rajasthan Stamp Duty Calculator. All rights reserved.
+          </p>
+          <p className="mt-0.5">
+            Developed by <span className="font-semibold text-slate-500">Gaurav Sharma</span>
+          </p>
+        </footer>
       </div>
     </div>
   );

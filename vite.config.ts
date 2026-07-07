@@ -9,7 +9,15 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "icons.svg", "robots.txt", "sitemap.xml", "og-image.png"],
+      includeAssets: [
+        "favicon.ico",
+        "favicon-16x16.png",
+        "favicon-32x32.png",
+        "apple-touch-icon.png",
+        "robots.txt",
+        "sitemap.xml",
+        "og-image.png",
+      ],
       manifest: {
         name: "Rajasthan Stamp Duty Calculator",
         short_name: "RJ Duty Calc",
@@ -20,8 +28,8 @@ export default defineConfig({
         display: "standalone",
         start_url: "/",
         icons: [
-          { src: "/pwa/icon-192.png", sizes: "192x192", type: "image/png" },
-          { src: "/pwa/icon-512.png", sizes: "512x512", type: "image/png" },
+          { src: "/android-chrome-192x192.png", sizes: "192x192", type: "image/png" },
+          { src: "/android-chrome-512x512.png", sizes: "512x512", type: "image/png" },
           {
             src: "/pwa/maskable-192.png",
             sizes: "192x192",
