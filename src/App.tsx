@@ -561,7 +561,7 @@ export default function App() {
             &copy; {new Date().getFullYear()} Rajasthan Stamp Duty Calculator. All rights reserved.
           </p>
           <p className="mt-0.5">
-            Developed by <span className="font-semibold text-slate-500">Gaurav Sharma</span>
+            Developed by <span className="font-semibold text-slate-500">MG Labs</span>
           </p>
         </footer>
       </div>
