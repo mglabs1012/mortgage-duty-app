@@ -284,16 +284,24 @@ export default function App() {
               </p>
             </div>
           </div>
-          <span className="rounded-full bg-slate-900 px-2.5 py-1 font-inter text-xs font-semibold text-white">
-            2026
-          </span>
+          <a
+            href="/blog"
+            className="rounded-full bg-black px-2.5 py-1 font-inter text-xs font-semibold text-white transition hover:bg-slate-800 active:scale-95"
+          >
+            Updates
+          </a>
         </header>
 
         {/* Input card */}
         <section className="no-print rounded-2xl bg-white p-4 shadow-lg ring-1 ring-slate-200/70 sm:p-5">
-          <label className="mb-2 block font-inter text-sm font-semibold text-slate-600">
-            Loan Amount <span className="font-normal text-slate-400">ऋण राशि</span>
-          </label>
+          <div className="mb-2 flex items-center justify-between">
+            <label className="font-inter text-sm font-semibold text-slate-600">
+              Loan Amount <span className="font-normal text-slate-400">ऋण राशि</span>
+            </label>
+            <span className="rounded-full bg-slate-900 px-2.5 py-1 font-inter text-xs font-semibold text-white">
+              2026
+            </span>
+          </div>
 
           <div className="relative flex items-center rounded-xl bg-slate-50 px-3.5 py-3 ring-1 ring-slate-200 transition focus-within:ring-2 focus-within:ring-blue-500">
             <IndianRupee className="mr-1.5 h-6 w-6 shrink-0 text-slate-400" />
