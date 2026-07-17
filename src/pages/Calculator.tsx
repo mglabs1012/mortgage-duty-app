@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   IndianRupee,
   Building2,
@@ -21,6 +22,8 @@ import {
 } from "lucide-react";
 import { BrandMark } from "../components/BrandMark";
 import { FaqAccordion } from "../components/FaqAccordion";
+import { AnimatedAmount } from "../components/AnimatedAmount";
+import { InstallAppButton } from "../components/InstallAppButton";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
 import {
   CSI_CHARGE,
@@ -74,6 +77,20 @@ function LedgerRow({ icon: Icon, label, hindi, value, capped }: LedgerRowProps) 
   );
 }
 
+const containerVariants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring" as const, stiffness: 300, damping: 28 },
+  },
+};
+
 export default function Calculator() {
   useDocumentMeta({
     title: "Rajasthan Stamp Duty Calculator 2026 | Mortgage & Loan Duty",
@@ -125,8 +142,8 @@ export default function Calculator() {
 
   const totalGrad = isMsme
     ? "from-emerald-700 via-teal-800 to-slate-900"
-    : "from-indigo-700 via-blue-800 to-slate-900";
-  const accentText = isMsme ? "text-emerald-700" : "text-blue-700";
+    : "from-indigo-600 via-indigo-700 to-violet-800";
+  const accentText = isMsme ? "text-emerald-700" : "text-indigo-700";
   const today = new Date().toLocaleDateString("en-IN");
 
   const buildSummary = () =>
@@ -192,7 +209,7 @@ export default function Calculator() {
   return (
     <div
       id="app-bg"
-      className="font-inter flex min-h-screen w-full flex-col bg-gradient-to-br from-slate-50 via-indigo-50 to-blue-100 px-4 py-6 sm:px-6"
+      className="relative flex min-h-screen w-full flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-indigo-50 to-blue-100 px-4 py-6 sm:px-6"
     >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap');
@@ -208,22 +225,51 @@ export default function Calculator() {
         }
       `}</style>
 
+      {/* Ambient background — no-print, purely decorative */}
+      <div
+        aria-hidden
+        className="no-print pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-indigo-300/25 blur-3xl"
+      />
+      <div
+        aria-hidden
+        className="no-print pointer-events-none absolute -left-20 top-1/3 h-64 w-64 rounded-full bg-blue-300/20 blur-3xl"
+      />
+      <div
+        aria-hidden
+        className="no-print pointer-events-none absolute bottom-0 right-1/4 h-56 w-56 rounded-full bg-violet-300/15 blur-3xl"
+      />
+
       {/* m-auto keeps the card centred on big screens, but lets it scroll when tall */}
-      <div className="m-auto flex w-full max-w-md flex-col gap-3 sm:gap-4">
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="relative z-10 m-auto flex w-full max-w-md flex-col gap-3 sm:gap-4"
+      >
         {/* Header */}
-        <header className="no-print flex items-center justify-between">
+        <motion.header
+          variants={itemVariants}
+          className="no-print flex items-center justify-between gap-2"
+        >
           <BrandMark />
-          <Link
-            to="/blog"
-            className="flex items-center gap-1.5 rounded-full bg-gradient-to-b from-slate-800 to-black px-3 py-1.5 font-inter text-xs font-semibold text-white shadow-md shadow-black/20 transition hover:from-slate-700 hover:to-slate-900 active:scale-95"
-          >
-            <Megaphone className="h-3.5 w-3.5" />
-            Updates
-          </Link>
-        </header>
+          <div className="flex items-center gap-1.5">
+            <InstallAppButton />
+            <Link
+              to="/blog"
+              aria-label="Updates"
+              className="flex items-center gap-1.5 rounded-full bg-gradient-to-b from-slate-800 via-slate-900 to-black px-3 py-1.5 font-inter text-xs font-semibold text-white shadow-md shadow-indigo-950/30 transition hover:from-slate-700 hover:to-black active:scale-95"
+            >
+              <Megaphone className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Updates</span>
+            </Link>
+          </div>
+        </motion.header>
 
         {/* Input card */}
-        <section className="no-print rounded-2xl bg-white p-4 shadow-lg ring-1 ring-slate-200/70 sm:p-5">
+        <motion.section
+          variants={itemVariants}
+          className="no-print rounded-2xl bg-white p-4 shadow-lg ring-1 ring-slate-200/70 sm:p-5"
+        >
           <div className="mb-2 flex items-center justify-between">
             <label className="font-inter text-sm font-semibold text-slate-600">
               Loan Amount <span className="font-normal text-slate-400">ऋण राशि</span>
@@ -280,7 +326,7 @@ export default function Calculator() {
               onClick={() => setCategory("Standard")}
               className={`flex items-center justify-center gap-1.5 rounded-lg py-2.5 font-inter text-sm font-bold transition ${
                 !isMsme
-                  ? "bg-white text-blue-700 shadow-sm shadow-blue-500/20"
+                  ? "bg-gradient-to-br from-indigo-600 to-violet-700 text-white shadow-md shadow-indigo-600/30"
                   : "text-slate-500"
               }`}
             >
@@ -291,7 +337,7 @@ export default function Calculator() {
               onClick={() => setCategory("MSME")}
               className={`flex items-center justify-center gap-1.5 rounded-lg py-2.5 font-inter text-sm font-bold transition ${
                 isMsme
-                  ? "bg-white text-emerald-700 shadow-sm shadow-emerald-500/20"
+                  ? "bg-gradient-to-br from-emerald-600 to-teal-700 text-white shadow-md shadow-emerald-600/30"
                   : "text-slate-500"
               }`}
             >
@@ -299,27 +345,30 @@ export default function Calculator() {
               MSME
             </button>
           </div>
-        </section>
+        </motion.section>
 
         {/* Total hero */}
-        <div
+        <motion.div
+          variants={itemVariants}
           className={`no-print overflow-hidden rounded-2xl bg-gradient-to-br ${totalGrad} px-5 py-4 text-center shadow-xl`}
         >
           <p className="font-inter text-xs font-bold uppercase tracking-widest text-white/70">
             Total Payable · कुल देय राशि
           </p>
           <div className="flex h-14 items-center justify-center sm:h-16">
-            <p className="font-poppins whitespace-nowrap text-4xl font-extrabold tabular-nums text-white sm:text-5xl">
-              {inr(grandTotal)}
-            </p>
+            <AnimatedAmount
+              value={grandTotal}
+              className="font-poppins whitespace-nowrap text-4xl font-extrabold tabular-nums text-white sm:text-5xl"
+            />
           </div>
           <p className="font-inter text-xs text-white/60">
             ≈ Approximate · {category} · <a href="https://egras.rajasthan.gov.in/" style={{ textDecoration: "underline", color: "white" }}>Verify on the E-gras</a>
           </p>
-        </div>
+        </motion.div>
 
         {/* Receipt / breakdown (prints) */}
-        <div
+        <motion.div
+          variants={itemVariants}
           id="receipt"
           className="rounded-2xl bg-white p-4 shadow-lg ring-1 ring-slate-200/70 sm:p-5"
         >
@@ -434,13 +483,13 @@ export default function Calculator() {
           <p className="hidden font-inter text-xs italic text-slate-500 print:block">
             ≈ Approximate amount. Subject to final valuation by the Sub-Registrar.
           </p>
-        </div>
+        </motion.div>
 
         {/* Actions */}
-        <div className="no-print grid grid-cols-3 gap-2">
+        <motion.div variants={itemVariants} className="no-print grid grid-cols-3 gap-2">
           <button
             onClick={handleCopy}
-            className={`${actionBase} bg-gradient-to-r from-indigo-600 to-blue-700 text-white shadow-md shadow-indigo-600/25 hover:from-indigo-700 hover:to-blue-800`}
+            className={`${actionBase} bg-gradient-to-r from-indigo-600 to-violet-700 text-white shadow-md shadow-indigo-600/25 hover:from-indigo-700 hover:to-violet-800`}
           >
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             {copied ? "Copied" : "Copy"}
@@ -459,17 +508,21 @@ export default function Calculator() {
             <Printer className="h-4 w-4" />
             PDF
           </button>
-        </div>
+        </motion.div>
 
         {/* Disclaimer — shown on screen AND in the PDF */}
-        <p className="px-1 text-center font-inter text-xs leading-relaxed text-slate-400">
+        <motion.p
+          variants={itemVariants}
+          className="px-1 text-center font-inter text-xs leading-relaxed text-slate-400"
+        >
           For guidance only. All figures are approximate and subject to final
           valuation by the Sub-Registrar. Verify against the prevailing Rajasthan
           Stamp &amp; Registration / e-GRAS schedule before relying on them.
-        </p>
+        </motion.p>
 
         {/* SEO content — real, crawlable explainer + FAQ */}
-        <section
+        <motion.section
+          variants={itemVariants}
           aria-labelledby="faq-heading"
           className="no-print rounded-2xl bg-white p-4 shadow-lg ring-1 ring-slate-200/70 sm:p-5"
         >
@@ -489,22 +542,25 @@ export default function Calculator() {
           <div className="mt-2">
             <FaqAccordion items={FAQ_ITEMS} />
           </div>
-        </section>
+        </motion.section>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
         />
 
         {/* Footer */}
-        <footer className="px-1 pb-1 text-center font-inter text-xs text-slate-400">
+        <motion.footer
+          variants={itemVariants}
+          className="px-1 pb-1 text-center font-inter text-xs text-slate-400"
+        >
           <p>
             &copy; {new Date().getFullYear()} Rajasthan Stamp Duty Calculator. All rights reserved.
           </p>
           <p className="mt-0.5">
             Developed by <span className="font-semibold text-slate-500">MG Labs</span>
           </p>
-        </footer>
-      </div>
+        </motion.footer>
+      </motion.div>
     </div>
   );
 }

@@ -27,6 +27,15 @@ export default defineConfig({
         background_color: "#f8fafc",
         display: "standalone",
         start_url: "/",
+        // Lets navigator.getInstalledRelatedApps() self-detect this PWA
+        // from a regular browser tab (Chrome/Edge); harmless elsewhere.
+        prefer_related_applications: false,
+        related_applications: [
+          {
+            platform: "webapp",
+            url: "https://mortgage-duty-app.vercel.app/manifest.webmanifest",
+          },
+        ],
         icons: [
           { src: "/android-chrome-192x192.png", sizes: "192x192", type: "image/png" },
           { src: "/android-chrome-512x512.png", sizes: "512x512", type: "image/png" },
