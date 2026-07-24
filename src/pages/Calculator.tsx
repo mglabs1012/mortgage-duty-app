@@ -287,7 +287,7 @@ export default function Calculator() {
         </motion.header>
 
         {/* Dashboard grid: input sidebar (left) + results (right) */}
-        <div className="dashboard-shell grid grid-cols-1 items-start gap-4 lg:grid-cols-[380px_1fr] lg:gap-6">
+        <div className="dashboard-shell grid grid-cols-1 items-start gap-4 lg:grid-cols-2 lg:gap-6">
           {/* Left column — inputs */}
           <div className="dashboard-shell flex flex-col gap-4 lg:sticky lg:top-6">
             <motion.section
