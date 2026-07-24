@@ -206,10 +206,22 @@ export default function Calculator() {
   const actionBase =
     "flex items-center justify-center gap-1.5 rounded-xl py-3 font-inter text-sm font-bold transition active:scale-95";
 
+  const cardBase =
+    "rounded-3xl bg-white/90 backdrop-blur-xl shadow-[0_2px_10px_rgba(15,23,42,0.04),0_12px_32px_-12px_rgba(30,41,59,0.14)] ring-1 ring-slate-900/[0.06]";
+
+  const surchargeTotal = infraSurcharge + cowSurcharge + calamitySurcharge;
+  const regAndCsi = regFee + csi;
+
+  const kpis = [
+    { icon: Stamp, label: "Stamp Duty", value: stampDuty, tint: "from-indigo-500 to-violet-600" },
+    { icon: ShieldCheck, label: "Surcharges", value: surchargeTotal, tint: "from-amber-500 to-orange-600" },
+    { icon: FileSignature, label: "Reg. + CSI", value: regAndCsi, tint: "from-sky-500 to-blue-600" },
+  ];
+
   return (
     <div
       id="app-bg"
-      className="relative flex min-h-screen w-full flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-indigo-50 to-blue-100 px-4 py-6 sm:px-6"
+      className="relative min-h-screen w-full overflow-hidden bg-gradient-to-br from-slate-50 via-indigo-50/60 to-blue-100 px-4 py-6 sm:px-6 lg:px-10 lg:py-10"
     >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap');
@@ -220,6 +232,7 @@ export default function Calculator() {
           .breakdown-rows { display: block !important; }
           .total-row { display: flex !important; }
           #app-bg { background: #ffffff !important; padding: 0 !important; display: block !important; min-height: 0 !important; }
+          .dashboard-shell { display: block !important; }
           #receipt { box-shadow: none !important; border: 1px solid #cbd5e1 !important; border-radius: 12px; }
           @page { margin: 14mm; }
         }
@@ -228,28 +241,36 @@ export default function Calculator() {
       {/* Ambient background — no-print, purely decorative */}
       <div
         aria-hidden
-        className="no-print pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-indigo-300/25 blur-3xl"
+        className="no-print pointer-events-none absolute inset-0 opacity-[0.35]"
+        style={{
+          backgroundImage: "radial-gradient(circle at 1px 1px, rgb(99 102 241 / 0.18) 1px, transparent 0)",
+          backgroundSize: "28px 28px",
+          maskImage: "radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%)",
+        }}
       />
       <div
         aria-hidden
-        className="no-print pointer-events-none absolute -left-20 top-1/3 h-64 w-64 rounded-full bg-blue-300/20 blur-3xl"
+        className="no-print pointer-events-none absolute -right-20 -top-24 h-96 w-96 rounded-full bg-indigo-300/25 blur-3xl"
       />
       <div
         aria-hidden
-        className="no-print pointer-events-none absolute bottom-0 right-1/4 h-56 w-56 rounded-full bg-violet-300/15 blur-3xl"
+        className="no-print pointer-events-none absolute -left-24 top-1/3 h-72 w-72 rounded-full bg-blue-300/20 blur-3xl"
+      />
+      <div
+        aria-hidden
+        className="no-print pointer-events-none absolute bottom-0 right-1/4 h-64 w-64 rounded-full bg-violet-300/15 blur-3xl"
       />
 
-      {/* m-auto keeps the card centred on big screens, but lets it scroll when tall */}
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="relative z-10 m-auto flex w-full max-w-md flex-col gap-3 sm:gap-4"
+        className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-4 lg:gap-6"
       >
-        {/* Header */}
+        {/* Topbar */}
         <motion.header
           variants={itemVariants}
-          className="no-print flex items-center justify-between gap-2"
+          className="no-print flex items-center justify-between gap-2 rounded-2xl bg-white/80 px-3.5 py-3 shadow-sm ring-1 ring-slate-900/[0.06] backdrop-blur-xl sm:px-4 lg:px-5"
         >
           <BrandMark />
           <div className="flex items-center gap-1.5">
@@ -265,250 +286,305 @@ export default function Calculator() {
           </div>
         </motion.header>
 
-        {/* Input card */}
-        <motion.section
-          variants={itemVariants}
-          className="no-print rounded-2xl bg-white p-4 shadow-lg ring-1 ring-slate-200/70 sm:p-5"
-        >
-          <div className="mb-2 flex items-center justify-between">
-            <label className="font-inter text-sm font-semibold text-slate-600">
-              Loan Amount <span className="font-normal text-slate-400">ऋण राशि</span>
-            </label>
-            <span className="rounded-full bg-slate-900 px-2.5 py-1 font-inter text-xs font-semibold text-white">
-              2026
-            </span>
-          </div>
+        {/* Dashboard grid: input sidebar (left) + results (right) */}
+        <div className="dashboard-shell grid grid-cols-1 items-start gap-4 lg:grid-cols-[380px_1fr] lg:gap-6">
+          {/* Left column — inputs */}
+          <div className="dashboard-shell flex flex-col gap-4 lg:sticky lg:top-6">
+            <motion.section
+              variants={itemVariants}
+              className={`no-print ${cardBase} p-4 sm:p-5`}
+            >
+              <div className="mb-2 flex items-center justify-between">
+                <label className="font-inter text-sm font-semibold text-slate-600">
+                  Loan Amount <span className="font-normal text-slate-400">ऋण राशि</span>
+                </label>
+                <span className="rounded-full bg-slate-900 px-2.5 py-1 font-inter text-xs font-semibold text-white">
+                  2026
+                </span>
+              </div>
 
-          <div className="relative flex items-center rounded-xl bg-slate-50 px-3.5 py-3 ring-1 ring-slate-200 transition focus-within:ring-2 focus-within:ring-indigo-500">
-            <IndianRupee className="mr-1.5 h-6 w-6 shrink-0 text-slate-400" />
-            <input
-              value={grouped(raw)}
-              onChange={onChange}
-              inputMode="numeric"
-              type="text"
-              placeholder="0"
-              className="font-poppins w-full bg-transparent pr-10 text-2xl font-bold tabular-nums text-slate-900 outline-none placeholder:text-slate-300 sm:text-3xl"
-            />
-            {raw && (
-              <button
-                onClick={() => setRaw("")}
-                aria-label="Clear amount"
-                className="absolute right-2.5 flex h-7 w-7 items-center justify-center rounded-full bg-red-50 text-red-600 ring-1 ring-red-200 transition hover:bg-red-100 active:scale-95"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+              <div className="relative flex items-center rounded-xl bg-slate-50 px-3.5 py-3 ring-1 ring-slate-200 transition focus-within:ring-2 focus-within:ring-indigo-500">
+                <IndianRupee className="mr-1.5 h-6 w-6 shrink-0 text-slate-400" />
+                <input
+                  value={grouped(raw)}
+                  onChange={onChange}
+                  inputMode="numeric"
+                  type="text"
+                  placeholder="0"
+                  className="font-poppins w-full bg-transparent pr-10 text-2xl font-bold tabular-nums text-slate-900 outline-none placeholder:text-slate-300 sm:text-3xl"
+                />
+                {raw && (
+                  <button
+                    onClick={() => setRaw("")}
+                    aria-label="Clear amount"
+                    className="absolute right-2.5 flex h-7 w-7 items-center justify-center rounded-full bg-red-50 text-red-600 ring-1 ring-red-200 transition hover:bg-red-100 active:scale-95"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
 
-          {/* Presets */}
-          <div className="mt-2.5 grid grid-cols-4 gap-1.5">
-            {presets.map((p) => {
-              const active = raw === p.v;
-              return (
+              {/* Presets */}
+              <div className="relative mt-2.5 grid grid-cols-4 gap-1.5">
+                {presets.map((p) => {
+                  const active = raw === p.v;
+                  return (
+                    <button
+                      key={p.v}
+                      onClick={() => setRaw(p.v)}
+                      className={`relative z-10 font-inter rounded-lg py-2 text-xs font-semibold transition active:scale-95 ${
+                        active ? "text-white" : "text-slate-600 hover:bg-slate-200"
+                      }`}
+                    >
+                      {active && (
+                        <motion.span
+                          layoutId="presetPill"
+                          transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                          className="absolute inset-0 -z-10 rounded-lg bg-indigo-600 shadow-sm shadow-indigo-600/30"
+                        />
+                      )}
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Segmented control */}
+              <div className="relative mt-3 grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
                 <button
-                  key={p.v}
-                  onClick={() => setRaw(p.v)}
-                  className={`font-inter rounded-lg py-2 text-xs font-semibold transition active:scale-95 ${
-                    active
-                      ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/30"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  onClick={() => setCategory("Standard")}
+                  className={`relative z-10 flex items-center justify-center gap-1.5 rounded-lg py-2.5 font-inter text-sm font-bold transition ${
+                    !isMsme ? "text-white" : "text-slate-500"
                   }`}
                 >
-                  {p.label}
+                  {!isMsme && (
+                    <motion.span
+                      layoutId="segPill"
+                      transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                      className="absolute inset-0 -z-10 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-700 shadow-md shadow-indigo-600/30"
+                    />
+                  )}
+                  <Building2 className="h-4 w-4" />
+                  Standard
                 </button>
-              );
-            })}
+                <button
+                  onClick={() => setCategory("MSME")}
+                  className={`relative z-10 flex items-center justify-center gap-1.5 rounded-lg py-2.5 font-inter text-sm font-bold transition ${
+                    isMsme ? "text-white" : "text-slate-500"
+                  }`}
+                >
+                  {isMsme && (
+                    <motion.span
+                      layoutId="segPill"
+                      transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                      className="absolute inset-0 -z-10 rounded-lg bg-gradient-to-br from-emerald-600 to-teal-700 shadow-md shadow-emerald-600/30"
+                    />
+                  )}
+                  <Factory className="h-4 w-4" />
+                  MSME
+                </button>
+              </div>
+            </motion.section>
           </div>
 
-          {/* Segmented control */}
-          <div className="mt-3 grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
-            <button
-              onClick={() => setCategory("Standard")}
-              className={`flex items-center justify-center gap-1.5 rounded-lg py-2.5 font-inter text-sm font-bold transition ${
-                !isMsme
-                  ? "bg-gradient-to-br from-indigo-600 to-violet-700 text-white shadow-md shadow-indigo-600/30"
-                  : "text-slate-500"
-              }`}
+          {/* Right column — results */}
+          <div className="dashboard-shell flex flex-col gap-4">
+            {/* Total hero */}
+            <motion.div
+              variants={itemVariants}
+              className={`no-print relative overflow-hidden rounded-3xl bg-gradient-to-br ${totalGrad} px-5 py-5 text-center shadow-xl sm:py-6`}
             >
-              <Building2 className="h-4 w-4" />
-              Standard
-            </button>
-            <button
-              onClick={() => setCategory("MSME")}
-              className={`flex items-center justify-center gap-1.5 rounded-lg py-2.5 font-inter text-sm font-bold transition ${
-                isMsme
-                  ? "bg-gradient-to-br from-emerald-600 to-teal-700 text-white shadow-md shadow-emerald-600/30"
-                  : "text-slate-500"
-              }`}
-            >
-              <Factory className="h-4 w-4" />
-              MSME
-            </button>
-          </div>
-        </motion.section>
-
-        {/* Total hero */}
-        <motion.div
-          variants={itemVariants}
-          className={`no-print overflow-hidden rounded-2xl bg-gradient-to-br ${totalGrad} px-5 py-4 text-center shadow-xl`}
-        >
-          <p className="font-inter text-xs font-bold uppercase tracking-widest text-white/70">
-            Total Payable · कुल देय राशि
-          </p>
-          <div className="flex h-14 items-center justify-center sm:h-16">
-            <AnimatedAmount
-              value={grandTotal}
-              className="font-poppins whitespace-nowrap text-4xl font-extrabold tabular-nums text-white sm:text-5xl"
-            />
-          </div>
-          <p className="font-inter text-xs text-white/60">
-            ≈ Approximate · {category} · <a href="https://egras.rajasthan.gov.in/" style={{ textDecoration: "underline", color: "white" }}>Verify on the E-gras</a>
-          </p>
-        </motion.div>
-
-        {/* Receipt / breakdown (prints) */}
-        <motion.div
-          variants={itemVariants}
-          id="receipt"
-          className="rounded-2xl bg-white p-4 shadow-lg ring-1 ring-slate-200/70 sm:p-5"
-        >
-          {/* Print-only receipt header */}
-          <div className="mb-3 hidden print:block">
-            <div className="font-poppins text-lg font-extrabold text-slate-900">
-              Rajasthan Mortgage &amp; Loan Duty
-            </div>
-            <div className="font-inter text-xs text-slate-500">
-              Statutory Fee Receipt · {category} category · {today}
-            </div>
-          </div>
-
-          {/* Collapsible toggle */}
-          <button
-            onClick={() => setOpen(!open)}
-            className="-mx-1 flex w-full items-center justify-between gap-2 rounded-lg px-1 py-1 transition hover:bg-slate-50"
-          >
-            <div className="flex items-center gap-2">
-              <Receipt className={`h-4 w-4 ${accentText}`} />
-              <span className="font-poppins text-sm font-bold text-slate-800">
-                Statutory Breakdown
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 font-inter text-xs font-bold text-emerald-700 ring-1 ring-emerald-200">
-                <ShieldCheck className="h-3 w-3" />
-                e-GRAS
-              </span>
-              <ChevronDown
-                className={`no-print h-4 w-4 text-slate-400 transition-transform ${
-                  open ? "rotate-180" : ""
-                }`}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 opacity-20"
+                style={{
+                  backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+                  backgroundSize: "22px 22px",
+                }}
               />
-            </div>
-          </button>
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-white/10 blur-3xl"
+              />
+              <p className="relative font-inter text-xs font-bold uppercase tracking-widest text-white/70">
+                Total Payable · कुल देय राशि
+              </p>
+              <div className="relative flex h-14 items-center justify-center sm:h-16">
+                <AnimatedAmount
+                  value={grandTotal}
+                  className="font-poppins whitespace-nowrap text-4xl font-extrabold tabular-nums text-white sm:text-5xl"
+                />
+              </div>
+              <p className="relative font-inter text-xs text-white/60">
+                ≈ Approximate · {category} · <a href="https://egras.rajasthan.gov.in/" style={{ textDecoration: "underline", color: "white" }}>Verify on the E-gras</a>
+              </p>
+            </motion.div>
 
-          {/* Collapsible body (always shown when printing) */}
-          <div className={`breakdown-rows ${open ? "block" : "hidden"}`}>
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-1 font-inter text-xs text-slate-400">
-              <span>
-                {category} category · Loan {inr(loanAmount)}
-              </span>
-              <span>{today}</span>
-            </div>
-            <div className="mb-1 font-inter text-xs text-slate-400">
-              Basis: Mortgage deed without possession · e-GRAS
-            </div>
+            {/* KPI stat row */}
+            <motion.div variants={itemVariants} className="no-print grid grid-cols-3 gap-2 sm:gap-3">
+              {kpis.map((k) => (
+                <div
+                  key={k.label}
+                  className={`${cardBase} flex flex-col gap-2 p-3 transition hover:shadow-lg sm:p-3.5`}
+                >
+                  <div
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br ${k.tint} text-white shadow-sm`}
+                  >
+                    <k.icon className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-inter text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                      {k.label}
+                    </p>
+                    <p className="font-poppins truncate text-sm font-extrabold tabular-nums text-slate-900 sm:text-base">
+                      {inr(k.value)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </motion.div>
 
-            <LedgerRow
-              icon={Stamp}
-              label="Stamp Duty Payable"
-              hindi="स्टाम्प ड्यूटी"
-              value={stampDuty}
-              capped={stampCapped}
-            />
-            <LedgerRow
-              icon={HardHat}
-              label={`Infrastructure Surcharge (${pct(SURCHARGE_RATES.infrastructure)}%)`}
-              hindi="अवस्थापना अधिभार"
-              value={infraSurcharge}
-            />
-            <LedgerRow
-              icon={ShieldCheck}
-              label={`Cow Protection Surcharge (${pct(SURCHARGE_RATES.cowProtection)}%)`}
-              hindi="गौ संरक्षण अधिभार"
-              value={cowSurcharge}
-            />
-            <LedgerRow
-              icon={AlertTriangle}
-              label={`Natural Calamity Surcharge (${pct(SURCHARGE_RATES.naturalCalamity)}%)`}
-              hindi="प्राकृतिक आपदा अधिभार"
-              value={calamitySurcharge}
-            />
-            <LedgerRow
-              icon={FileSignature}
-              label="Registration Fee"
-              hindi="पंजीकरण शुल्क"
-              value={regFee}
-              capped={regCapped}
-            />
-            <LedgerRow
-              icon={Globe}
-              label="CSI Charges"
-              hindi="CSI पोर्टल शुल्क"
-              value={csi}
-            />
+            {/* Receipt / breakdown (prints) */}
+            <motion.div variants={itemVariants} id="receipt" className={`${cardBase} p-4 sm:p-5`}>
+              {/* Print-only receipt header */}
+              <div className="mb-3 hidden print:block">
+                <div className="font-poppins text-lg font-extrabold text-slate-900">
+                  Rajasthan Mortgage &amp; Loan Duty
+                </div>
+                <div className="font-inter text-xs text-slate-500">
+                  Statutory Fee Receipt · {category} category · {today}
+                </div>
+              </div>
+
+              {/* Collapsible toggle */}
+              <button
+                onClick={() => setOpen(!open)}
+                className="-mx-1 flex w-full items-center justify-between gap-2 rounded-lg px-1 py-1 transition hover:bg-slate-50"
+              >
+                <div className="flex items-center gap-2">
+                  <Receipt className={`h-4 w-4 ${accentText}`} />
+                  <span className="font-poppins text-sm font-bold text-slate-800">
+                    Statutory Breakdown
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 font-inter text-xs font-bold text-emerald-700 ring-1 ring-emerald-200">
+                    <ShieldCheck className="h-3 w-3" />
+                    e-GRAS
+                  </span>
+                  <ChevronDown
+                    className={`no-print h-4 w-4 text-slate-400 transition-transform ${
+                      open ? "rotate-180" : ""
+                    }`}
+                  />
+                </div>
+              </button>
+
+              {/* Collapsible body (always shown when printing) */}
+              <div className={`breakdown-rows ${open ? "block" : "hidden"}`}>
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-1 font-inter text-xs text-slate-400">
+                  <span>
+                    {category} category · Loan {inr(loanAmount)}
+                  </span>
+                  <span>{today}</span>
+                </div>
+                <div className="mb-1 font-inter text-xs text-slate-400">
+                  Basis: Mortgage deed without possession · e-GRAS
+                </div>
+
+                <LedgerRow
+                  icon={Stamp}
+                  label="Stamp Duty Payable"
+                  hindi="स्टाम्प ड्यूटी"
+                  value={stampDuty}
+                  capped={stampCapped}
+                />
+                <LedgerRow
+                  icon={HardHat}
+                  label={`Infrastructure Surcharge (${pct(SURCHARGE_RATES.infrastructure)}%)`}
+                  hindi="अवस्थापना अधिभार"
+                  value={infraSurcharge}
+                />
+                <LedgerRow
+                  icon={ShieldCheck}
+                  label={`Cow Protection Surcharge (${pct(SURCHARGE_RATES.cowProtection)}%)`}
+                  hindi="गौ संरक्षण अधिभार"
+                  value={cowSurcharge}
+                />
+                <LedgerRow
+                  icon={AlertTriangle}
+                  label={`Natural Calamity Surcharge (${pct(SURCHARGE_RATES.naturalCalamity)}%)`}
+                  hindi="प्राकृतिक आपदा अधिभार"
+                  value={calamitySurcharge}
+                />
+                <LedgerRow
+                  icon={FileSignature}
+                  label="Registration Fee"
+                  hindi="पंजीकरण शुल्क"
+                  value={regFee}
+                  capped={regCapped}
+                />
+                <LedgerRow
+                  icon={Globe}
+                  label="CSI Charges"
+                  hindi="CSI पोर्टल शुल्क"
+                  value={csi}
+                />
+              </div>
+
+              {/* TOTAL row — hidden on screen when collapsed, always printed */}
+              <div
+                className={`total-row mt-1 items-center justify-between gap-2 border-t-2 border-slate-900 py-3 ${
+                  open ? "flex" : "hidden"
+                }`}
+              >
+                <div>
+                  <span className="font-poppins text-base font-extrabold text-slate-900">
+                    TOTAL PAYABLE
+                  </span>
+                  <span className="block font-inter text-xs text-slate-400">
+                    कुल देय राशि
+                  </span>
+                </div>
+                <span
+                  className={`font-poppins text-xl font-extrabold tabular-nums ${accentText}`}
+                >
+                  {inr(grandTotal)}
+                </span>
+              </div>
+
+              {/* Approximate note directly under total — printed only */}
+              <p className="hidden font-inter text-xs italic text-slate-500 print:block">
+                ≈ Approximate amount. Subject to final valuation by the Sub-Registrar.
+              </p>
+            </motion.div>
+
+            {/* Actions */}
+            <motion.div variants={itemVariants} className="no-print grid grid-cols-3 gap-2">
+              <button
+                onClick={handleCopy}
+                className={`${actionBase} bg-gradient-to-r from-indigo-600 to-violet-700 text-white shadow-md shadow-indigo-600/25 hover:from-indigo-700 hover:to-violet-800`}
+              >
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copied ? "Copied" : "Copy"}
+              </button>
+              <button
+                onClick={handleShare}
+                className={`${actionBase} bg-indigo-50 text-indigo-700 hover:bg-indigo-100`}
+              >
+                <Share2 className="h-4 w-4" />
+                Share
+              </button>
+              <button
+                onClick={handlePrint}
+                className={`${actionBase} bg-slate-100 text-slate-700 hover:bg-slate-200`}
+              >
+                <Printer className="h-4 w-4" />
+                PDF
+              </button>
+            </motion.div>
           </div>
-
-          {/* TOTAL row — hidden on screen when collapsed, always printed */}
-          <div
-            className={`total-row mt-1 items-center justify-between gap-2 border-t-2 border-slate-900 py-3 ${
-              open ? "flex" : "hidden"
-            }`}
-          >
-            <div>
-              <span className="font-poppins text-base font-extrabold text-slate-900">
-                TOTAL PAYABLE
-              </span>
-              <span className="block font-inter text-xs text-slate-400">
-                कुल देय राशि
-              </span>
-            </div>
-            <span
-              className={`font-poppins text-xl font-extrabold tabular-nums ${accentText}`}
-            >
-              {inr(grandTotal)}
-            </span>
-          </div>
-
-          {/* Approximate note directly under total — printed only */}
-          <p className="hidden font-inter text-xs italic text-slate-500 print:block">
-            ≈ Approximate amount. Subject to final valuation by the Sub-Registrar.
-          </p>
-        </motion.div>
-
-        {/* Actions */}
-        <motion.div variants={itemVariants} className="no-print grid grid-cols-3 gap-2">
-          <button
-            onClick={handleCopy}
-            className={`${actionBase} bg-gradient-to-r from-indigo-600 to-violet-700 text-white shadow-md shadow-indigo-600/25 hover:from-indigo-700 hover:to-violet-800`}
-          >
-            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            {copied ? "Copied" : "Copy"}
-          </button>
-          <button
-            onClick={handleShare}
-            className={`${actionBase} bg-indigo-50 text-indigo-700 hover:bg-indigo-100`}
-          >
-            <Share2 className="h-4 w-4" />
-            Share
-          </button>
-          <button
-            onClick={handlePrint}
-            className={`${actionBase} bg-slate-100 text-slate-700 hover:bg-slate-200`}
-          >
-            <Printer className="h-4 w-4" />
-            PDF
-          </button>
-        </motion.div>
+        </div>
 
         {/* Disclaimer — shown on screen AND in the PDF */}
         <motion.p
@@ -524,7 +600,7 @@ export default function Calculator() {
         <motion.section
           variants={itemVariants}
           aria-labelledby="faq-heading"
-          className="no-print rounded-2xl bg-white p-4 shadow-lg ring-1 ring-slate-200/70 sm:p-5"
+          className={`no-print ${cardBase} p-4 sm:p-5`}
         >
           <h2
             id="faq-heading"
