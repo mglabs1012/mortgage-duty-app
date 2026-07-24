@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Stamp } from "lucide-react";
+import { ArrowLeft, Stamp, Newspaper } from "lucide-react";
 import { UPDATES } from "../data/updates";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
 
@@ -12,12 +12,12 @@ const TAG_STYLES: Record<string, string> = {
   Feature: "bg-sky-100 text-sky-700",
 };
 
-export default function Blog() {
+export default function Updates() {
   useDocumentMeta({
     title: "Updates | Rajasthan Stamp Duty Calculator",
     description:
       "Release notes for the Rajasthan Stamp Duty Calculator — new features, rate changes, and design updates.",
-    path: "/blog",
+    path: "/updates",
   });
 
   return (
@@ -49,13 +49,22 @@ export default function Blog() {
         />
 
         <div className="relative m-auto flex w-full max-w-xl flex-col gap-6">
-          <Link
-            to="/"
-            className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 font-inter text-xs font-semibold text-white/90 backdrop-blur transition hover:bg-white/20 active:scale-95"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Back to calculator
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              to="/"
+              className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 font-inter text-xs font-semibold text-white/90 backdrop-blur transition hover:bg-white/20 active:scale-95"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back to calculator
+            </Link>
+            <Link
+              to="/blog"
+              className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 font-inter text-xs font-semibold text-white/90 backdrop-blur transition hover:bg-white/20 active:scale-95"
+            >
+              <Newspaper className="h-3.5 w-3.5" />
+              Read the blog
+            </Link>
+          </div>
 
           <motion.div
             initial={{ opacity: 0, y: 12 }}

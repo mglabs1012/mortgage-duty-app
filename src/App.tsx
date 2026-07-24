@@ -1,7 +1,11 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import Calculator from "./pages/Calculator";
-import Blog from "./pages/Blog";
+
+const Updates = lazy(() => import("./pages/Updates"));
+const BlogIndex = lazy(() => import("./pages/BlogIndex"));
+const BlogPost = lazy(() => import("./pages/BlogPost"));
 
 const pageVariants = {
   initial: { opacity: 0, y: 18, scale: 0.985, filter: "blur(4px)" },
@@ -24,10 +28,14 @@ export default function App() {
         variants={pageVariants}
         transition={pageTransition}
       >
-        <Routes location={location}>
-          <Route path="/" element={<Calculator />} />
-          <Route path="/blog" element={<Blog />} />
-        </Routes>
+        <Suspense fallback={null}>
+          <Routes location={location}>
+            <Route path="/" element={<Calculator />} />
+            <Route path="/updates" element={<Updates />} />
+            <Route path="/blog" element={<BlogIndex />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
+          </Routes>
+        </Suspense>
       </motion.div>
     </AnimatePresence>
   );

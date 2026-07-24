@@ -255,7 +255,7 @@ export default function Calculator() {
           <div className="flex items-center gap-1.5">
             <InstallAppButton />
             <Link
-              to="/blog"
+              to="/updates"
               aria-label="Updates"
               className="flex items-center gap-1.5 rounded-full bg-gradient-to-b from-slate-800 via-slate-900 to-black px-3 py-1.5 font-inter text-xs font-semibold text-white shadow-md shadow-indigo-950/30 transition hover:from-slate-700 hover:to-black active:scale-95"
             >
@@ -553,7 +553,13 @@ export default function Calculator() {
           variants={itemVariants}
           className="px-1 pb-1 text-center font-inter text-xs text-slate-400"
         >
-          <p>
+          <Link
+            to="/blog"
+            className="font-semibold text-indigo-600 underline decoration-indigo-200 underline-offset-2 transition hover:text-indigo-700"
+          >
+            Read our blog
+          </Link>
+          <p className="mt-1.5">
             &copy; {new Date().getFullYear()} Rajasthan Stamp Duty Calculator. All rights reserved.
           </p>
           <p className="mt-0.5">
