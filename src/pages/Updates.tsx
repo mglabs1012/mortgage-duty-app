@@ -29,7 +29,7 @@ export default function Updates() {
       `}</style>
 
       {/* Hero */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-700 via-blue-800 to-slate-900 px-4 pb-16 pt-6 sm:px-6">
+      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-700 via-blue-800 to-slate-900 px-4 pb-10 pt-6 sm:px-6 sm:pb-12">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-20"
@@ -87,7 +87,7 @@ export default function Updates() {
       </div>
 
       {/* Timeline */}
-      <div className="m-auto -mt-10 flex w-full max-w-xl flex-col gap-4 px-4 pb-10 sm:px-6">
+      <div className="m-auto flex w-full max-w-xl flex-col gap-4 px-4 pb-10 pt-6 sm:px-6 sm:pt-8">
         {UPDATES.map((update, i) => {
           const Icon = update.icon;
           return (

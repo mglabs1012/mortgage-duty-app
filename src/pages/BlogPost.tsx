@@ -5,6 +5,7 @@ import { getPostBySlug } from "../data/posts";
 import { MarkdownArticle } from "../components/MarkdownArticle";
 import { FaqAccordion } from "../components/FaqAccordion";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
+import { splitMarkdownSections } from "../lib/markdown";
 
 const SITE_URL = "https://mortgage-duty-app.vercel.app";
 
@@ -52,6 +53,8 @@ export default function BlogPost() {
     mainEntityOfPage: `${SITE_URL}/blog/${post.meta.slug}`,
   };
 
+  const sections = splitMarkdownSections(post.body);
+
   const faqSchema = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -71,7 +74,7 @@ export default function BlogPost() {
       `}</style>
 
       {/* Hero */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-700 via-violet-800 to-slate-900 px-4 pb-14 pt-6 sm:px-6">
+      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-700 via-violet-800 to-slate-900 px-4 pb-8 pt-6 sm:px-6 sm:pb-10">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-20"
@@ -122,21 +125,32 @@ export default function BlogPost() {
       </div>
 
       {/* Article body */}
-      <div className="m-auto -mt-8 flex w-full max-w-2xl flex-col gap-4 px-4 pb-10 sm:px-6">
-        <motion.article
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 260, damping: 26 }}
-          className="rounded-2xl bg-white p-5 shadow-lg ring-1 ring-slate-200/70 sm:p-7"
-        >
-          <MarkdownArticle markdown={post.body} />
-        </motion.article>
+      <div className="m-auto flex w-full max-w-2xl flex-col gap-4 px-4 pb-10 pt-6 sm:px-6 sm:pt-8">
+        {sections.map((section, i) => (
+          <motion.section
+            key={section.title}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              type: "spring",
+              stiffness: 260,
+              damping: 26,
+              delay: Math.min(i * 0.04, 0.3),
+            }}
+            className="rounded-2xl bg-white p-5 shadow-lg ring-1 ring-slate-200/70 sm:p-7"
+          >
+            <h2 className="font-poppins text-lg font-extrabold text-slate-900 sm:text-xl">
+              {section.title}
+            </h2>
+            <MarkdownArticle markdown={section.content} />
+          </motion.section>
+        ))}
 
         {/* FAQ */}
         <motion.section
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 260, damping: 26, delay: 0.05 }}
+          transition={{ type: "spring", stiffness: 260, damping: 26, delay: 0.35 }}
           aria-labelledby="post-faq-heading"
           className="rounded-2xl bg-white p-4 shadow-lg ring-1 ring-slate-200/70 sm:p-5"
         >
@@ -155,7 +169,7 @@ export default function BlogPost() {
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 260, damping: 26, delay: 0.1 }}
+          transition={{ type: "spring", stiffness: 260, damping: 26, delay: 0.4 }}
           className="overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 px-5 py-6 text-center shadow-xl"
         >
           <p className="font-poppins text-lg font-extrabold text-white">

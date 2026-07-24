@@ -70,7 +70,7 @@ For instruments covered by Article 5(d), Article 6, Article 30(b)(ii), Article 3
 | Registration fee | 0.50% of the relevant amount |
 | Maximum registration fee | ₹1,00,000 |
 
-These rates apply to the categories specifically covered by the notification and should not be applied automatically to every mortgage-related document. ([Finance Department Rajasthan][1])
+These rates apply to the categories specifically covered by the notification and should not be applied automatically to every mortgage-related document. ([Finance Department Rajasthan](https://finance.rajasthan.gov.in/PDFDOCS/TAX/IGRS/14823.pdf))
 
 The calculation may be expressed as:
 
@@ -187,7 +187,7 @@ A mortgage with possession can have a substantially different duty treatment fro
 
 ### Calculating registration fees without applying the cap
 
-The notified registration fee is percentage-based but subject to the prescribed maximum of ₹1 lakh for the covered instruments. ([Finance Department Rajasthan][1])
+The notified registration fee is percentage-based but subject to the prescribed maximum of ₹1 lakh for the covered instruments. ([Finance Department Rajasthan](https://finance.rajasthan.gov.in/PDFDOCS/TAX/IGRS/14823.pdf))
 
 ### Ignoring MSME status
 
@@ -230,9 +230,6 @@ Use the Rajasthan Mortgage Duty Calculator to get an instant estimated breakup o
 - MSME concession (where applicable)
 - Total estimated mortgage-document cost
 
-> **Disclaimer:** This calculator and article are provided for general informational purposes. They do not constitute legal advice or an official assessment of stamp duty. Government rates, exemptions, surcharge provisions and procedures may change. Verify the applicable amount with the Rajasthan Registration and Stamps Department or a qualified professional before executing or registering any instrument.
-
-[1]: https://finance.rajasthan.gov.in/PDFDOCS/TAX/IGRS/14823.pdf "Rajasthan Finance Department notification, 11 February 2026"
-[2]: https://epanjiyan.rajasthan.gov.in/ "Rajasthan e-Panjiyan portal"
+> **Disclaimer:** This calculator and article are provided for general informational purposes. They do not constitute legal advice or an official assessment of stamp duty. Government rates, exemptions, surcharge provisions and procedures may change. Verify the applicable amount with the [Rajasthan Registration and Stamps Department](https://epanjiyan.rajasthan.gov.in/) or a qualified professional before executing or registering any instrument.
 `.trim(),
 };
