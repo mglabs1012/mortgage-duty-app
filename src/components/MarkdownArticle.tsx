@@ -1,3 +1,4 @@
+import { memo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
@@ -76,7 +77,7 @@ const components: Components = {
   tr: ({ children }) => <tr className="last:[&>td]:border-b-0">{children}</tr>,
 };
 
-export function MarkdownArticle({ markdown }: { markdown: string }) {
+export const MarkdownArticle = memo(function MarkdownArticle({ markdown }: { markdown: string }) {
   return (
     <div className="max-w-none">
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
@@ -84,4 +85,4 @@ export function MarkdownArticle({ markdown }: { markdown: string }) {
       </ReactMarkdown>
     </div>
   );
-}
+});

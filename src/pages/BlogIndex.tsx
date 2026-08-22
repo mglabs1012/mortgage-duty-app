@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "motion/react";
 import {
@@ -11,8 +12,11 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { POSTS, getFeaturedPost } from "../data/posts";
+import { SiteFooter } from "../components/SiteFooter";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
 import { splitMarkdownSections } from "../lib/markdown";
+
+const SITE_URL = "https://mortgage-duty-app.vercel.app";
 
 const TRUST_POINTS = [
   { icon: Zap, text: "Instant, free results — no signup" },
@@ -28,8 +32,25 @@ export default function BlogIndex() {
   });
 
   const featured = getFeaturedPost();
-  const rest = POSTS.filter((p) => p.meta.slug !== featured?.meta.slug);
-  const topics = featured ? splitMarkdownSections(featured.body).map((s) => s.title) : [];
+  const rest = useMemo(
+    () => POSTS.filter((p) => p.meta.slug !== featured?.meta.slug),
+    [featured]
+  );
+  const topics = useMemo(
+    () => (featured ? splitMarkdownSections(featured.body).map((s) => s.title) : []),
+    [featured]
+  );
+
+  const listSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    itemListElement: POSTS.map((p, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      url: `${SITE_URL}/blog/${p.meta.slug}`,
+      name: p.meta.title,
+    })),
+  };
 
   return (
     <div className="font-inter min-h-screen w-full bg-slate-50">
@@ -61,6 +82,14 @@ export default function BlogIndex() {
             <ArrowLeft className="h-3.5 w-3.5" />
             Back to calculator
           </Link>
+
+          <nav aria-label="Breadcrumb" className="font-inter text-xs text-white/50">
+            <Link to="/" className="transition hover:text-white/80">
+              Home
+            </Link>
+            <span className="mx-1.5">/</span>
+            <span className="text-white/70">Blog</span>
+          </nav>
 
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -268,13 +297,13 @@ export default function BlogIndex() {
           </div>
         )}
 
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(listSchema) }}
+        />
+
         <footer className="mt-10 px-1 pb-1 text-center font-inter text-xs text-slate-400">
-          <p>
-            &copy; {new Date().getFullYear()} Rajasthan Stamp Duty Calculator. All rights reserved.
-          </p>
-          <p className="mt-0.5">
-            Developed by <span className="font-semibold text-slate-500">MG Labs</span>
-          </p>
+          <SiteFooter />
         </footer>
       </div>
     </div>

@@ -1,18 +1,20 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { motion, useScroll, useSpring } from "motion/react";
 import {
   ArrowLeft,
+  ArrowRight,
   Calculator as CalculatorIcon,
   FileText,
-  List,
   Copy,
   Check,
   Share2,
 } from "lucide-react";
-import { getPostBySlug } from "../data/posts";
+import { POSTS, getPostBySlug } from "../data/posts";
 import { MarkdownArticle } from "../components/MarkdownArticle";
 import { FaqAccordion } from "../components/FaqAccordion";
+import { TableOfContents } from "../components/TableOfContents";
+import { SiteFooter } from "../components/SiteFooter";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
 import { splitMarkdownSections } from "../lib/markdown";
 
@@ -39,39 +41,23 @@ export default function BlogPost() {
   const { scrollYProgress } = useScroll();
   const progress = useSpring(scrollYProgress, { stiffness: 300, damping: 40, restDelta: 0.001 });
 
-  const sections = post ? splitMarkdownSections(post.body) : [];
-  const tocItems = post
-    ? [
-        ...sections.map((s) => ({ id: slugify(s.title), title: s.title })),
-        { id: "faqs", title: "Frequently Asked Questions" },
-      ]
-    : [];
+  const sections = useMemo(() => (post ? splitMarkdownSections(post.body) : []), [post]);
+  const tocItems = useMemo(
+    () =>
+      post
+        ? [
+            ...sections.map((s) => ({ id: slugify(s.title), title: s.title })),
+            { id: "faqs", title: "Frequently Asked Questions" },
+          ]
+        : [],
+    [post, sections]
+  );
+  const relatedPosts = useMemo(
+    () => (post ? POSTS.filter((p) => p.meta.slug !== post.meta.slug).slice(0, 3) : []),
+    [post]
+  );
 
-  const [activeId, setActiveId] = useState("");
   const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    if (!post) return;
-    const ids = tocItems.map((t) => t.id);
-    const elements = ids
-      .map((id) => document.getElementById(id))
-      .filter((el): el is HTMLElement => !!el);
-    if (!elements.length) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries.filter((e) => e.isIntersecting);
-        if (visible.length) {
-          visible.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-          setActiveId(visible[0].target.id);
-        }
-      },
-      { rootMargin: "-110px 0px -70% 0px", threshold: [0, 1] }
-    );
-    elements.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [post?.meta.slug, tocItems.length]);
 
   const handleCopyLink = async () => {
     try {
@@ -147,6 +133,16 @@ export default function BlogPost() {
     })),
   };
 
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/` },
+      { "@type": "ListItem", position: 2, name: "Blog", item: `${SITE_URL}/blog` },
+      { "@type": "ListItem", position: 3, name: post.meta.title, item: `${SITE_URL}/blog/${post.meta.slug}` },
+    ],
+  };
+
   return (
     <div className="font-inter min-h-screen w-full bg-slate-50">
       {/* Reading progress bar */}
@@ -173,13 +169,27 @@ export default function BlogPost() {
         />
 
         <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-5">
-          <Link
-            to="/blog"
-            className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 font-inter text-xs font-semibold text-white/90 backdrop-blur transition hover:bg-white/20 active:scale-95"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Back to blog
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              to="/blog"
+              className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 font-inter text-xs font-semibold text-white/90 backdrop-blur transition hover:bg-white/20 active:scale-95"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back to blog
+            </Link>
+          </div>
+
+          <nav aria-label="Breadcrumb" className="font-inter text-xs text-white/50">
+            <Link to="/" className="transition hover:text-white/80">
+              Home
+            </Link>
+            <span className="mx-1.5">/</span>
+            <Link to="/blog" className="transition hover:text-white/80">
+              Blog
+            </Link>
+            <span className="mx-1.5">/</span>
+            <span className="text-white/70">{post.meta.tag}</span>
+          </nav>
 
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -284,6 +294,35 @@ export default function BlogPost() {
             </Link>
           </div>
 
+          {/* Related guides */}
+          {relatedPosts.length > 0 && (
+            <div>
+              <h2 className="font-poppins text-base font-bold text-slate-800">
+                Related Guides
+              </h2>
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {relatedPosts.map((related) => (
+                  <Link
+                    key={related.meta.slug}
+                    to={`/blog/${related.meta.slug}`}
+                    className="group block rounded-2xl bg-white p-4 shadow-lg ring-1 ring-slate-200/70 transition hover:ring-indigo-300"
+                  >
+                    <span className="rounded-full bg-indigo-100 px-2 py-0.5 font-inter text-[11px] font-bold text-indigo-700">
+                      {related.meta.tag}
+                    </span>
+                    <p className="font-poppins mt-2 text-sm font-bold leading-snug text-slate-900 group-hover:text-indigo-700">
+                      {related.meta.title}
+                    </p>
+                    <span className="mt-2 inline-flex items-center gap-1 font-inter text-xs font-bold text-indigo-700">
+                      Read article
+                      <ArrowRight className="h-3 w-3 transition group-hover:translate-x-0.5" />
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
           <script
             type="application/ld+json"
             dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
@@ -291,6 +330,10 @@ export default function BlogPost() {
           <script
             type="application/ld+json"
             dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+          />
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
           />
         </motion.article>
 
@@ -301,36 +344,7 @@ export default function BlogPost() {
           transition={{ type: "spring", stiffness: 380, damping: 30, delay: 0.08 }}
           className="no-print hidden flex-col gap-4 lg:sticky lg:top-6 lg:flex lg:self-start"
         >
-          <nav
-            aria-label="Table of contents"
-            className="rounded-2xl bg-white p-4 shadow-lg ring-1 ring-slate-200/70"
-          >
-            <div className="flex items-center gap-2 px-1">
-              <List className="h-4 w-4 text-indigo-600" />
-              <p className="font-inter text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                In this article
-              </p>
-            </div>
-            <ul className="mt-2 max-h-[50vh] space-y-0.5 overflow-y-auto border-l-2 border-slate-100 pl-0.5">
-              {tocItems.map((item) => {
-                const isActive = activeId === item.id;
-                return (
-                  <li key={item.id}>
-                    <a
-                      href={`#${item.id}`}
-                      className={`-ml-0.5 block border-l-2 py-1.5 pl-3 font-inter text-xs leading-snug transition ${
-                        isActive
-                          ? "border-indigo-600 font-bold text-indigo-700"
-                          : "border-transparent font-medium text-slate-500 hover:text-slate-800"
-                      }`}
-                    >
-                      {item.title}
-                    </a>
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
+          <TableOfContents items={tocItems} watchKey={post.meta.slug} />
 
           <div className="flex gap-2 rounded-2xl bg-white p-3 shadow-lg ring-1 ring-slate-200/70">
             <button
@@ -368,12 +382,7 @@ export default function BlogPost() {
       </div>
 
       <footer className="mx-auto w-full max-w-6xl px-4 pb-8 text-center font-inter text-xs text-slate-400 sm:px-6 lg:px-10">
-        <p>
-          &copy; {new Date().getFullYear()} Rajasthan Stamp Duty Calculator. All rights reserved.
-        </p>
-        <p className="mt-0.5">
-          Developed by <span className="font-semibold text-slate-500">MG Labs</span>
-        </p>
+        <SiteFooter />
       </footer>
     </div>
   );

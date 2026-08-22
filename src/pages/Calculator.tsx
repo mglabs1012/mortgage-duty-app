@@ -24,6 +24,7 @@ import { BrandMark } from "../components/BrandMark";
 import { FaqAccordion } from "../components/FaqAccordion";
 import { AnimatedAmount } from "../components/AnimatedAmount";
 import { InstallAppButton } from "../components/InstallAppButton";
+import { SiteFooter } from "../components/SiteFooter";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
 import {
   CSI_CHARGE,
@@ -632,12 +633,9 @@ export default function Calculator() {
           >
             Read our blog
           </Link>
-          <p className="mt-1.5">
-            &copy; {new Date().getFullYear()} Rajasthan Stamp Duty Calculator. All rights reserved.
-          </p>
-          <p className="mt-0.5">
-            Developed by <span className="font-semibold text-slate-500">MG Labs</span>
-          </p>
+          <div className="mt-1.5">
+            <SiteFooter />
+          </div>
         </motion.footer>
       </motion.div>
     </div>
