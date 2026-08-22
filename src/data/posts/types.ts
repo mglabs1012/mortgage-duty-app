@@ -8,6 +8,8 @@ export type PostMeta = {
   dateLabel: string;
   tag: string;
   readingTime: string;
+  /** Pins this post as the blog's featured/cornerstone article, regardless of date order. */
+  featured?: boolean;
 };
 
 export type Post = {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { motion, useScroll, useSpring } from "framer-motion";
+import { motion, useScroll, useSpring } from "motion/react";
 import {
   ArrowLeft,
   Calculator as CalculatorIcon,
@@ -86,8 +86,8 @@ export default function BlogPost() {
   const handleShare = async () => {
     const url = `${SITE_URL}/blog/${post?.meta.slug ?? ""}`;
     try {
-      if (typeof navigator !== "undefined" && (navigator as any).share) {
-        await (navigator as any).share({ title: post?.meta.title, url });
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({ title: post?.meta.title, url });
         return;
       }
       await handleCopyLink();
@@ -98,16 +98,24 @@ export default function BlogPost() {
 
   if (!post) {
     return (
-      <div className="font-inter flex min-h-screen w-full flex-col items-center justify-center gap-4 bg-slate-50 px-4 text-center">
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap');
-          .font-inter { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
-          .font-poppins { font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif; }
-        `}</style>
-        <p className="font-poppins text-xl font-extrabold text-slate-900">Article not found</p>
+      <div className="font-inter relative flex min-h-screen w-full flex-col items-center justify-center gap-4 overflow-hidden bg-slate-50 px-4 text-center">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-indigo-300/25 blur-3xl"
+        />
+        <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-700 text-white shadow-lg shadow-indigo-600/25">
+          <FileText className="h-7 w-7" />
+        </div>
+        <p className="font-poppins relative text-xl font-extrabold text-slate-900">
+          Article not found
+        </p>
+        <p className="relative max-w-xs font-inter text-sm text-slate-500">
+          This guide may have moved or doesn&apos;t exist. Head back to the blog to
+          see what&apos;s available.
+        </p>
         <Link
           to="/blog"
-          className="inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-4 py-2 font-inter text-sm font-semibold text-white transition hover:bg-indigo-700"
+          className="relative inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-4 py-2.5 font-inter text-sm font-semibold text-white shadow-md shadow-indigo-600/25 transition hover:bg-indigo-700 active:scale-95"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to blog
@@ -141,13 +149,6 @@ export default function BlogPost() {
 
   return (
     <div className="font-inter min-h-screen w-full bg-slate-50">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap');
-        .font-inter { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
-        .font-poppins { font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif; }
-        html { scroll-behavior: smooth; }
-      `}</style>
-
       {/* Reading progress bar */}
       <motion.div
         aria-hidden
@@ -183,7 +184,7 @@ export default function BlogPost() {
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 260, damping: 26 }}
+            transition={{ type: "spring", stiffness: 380, damping: 30 }}
             className="flex max-w-3xl flex-col gap-3"
           >
             <div className="flex flex-wrap items-center gap-2">
@@ -230,7 +231,7 @@ export default function BlogPost() {
         <motion.article
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 260, damping: 26 }}
+          transition={{ type: "spring", stiffness: 380, damping: 30 }}
           className="min-w-0 flex flex-col gap-5"
         >
           <div className="rounded-3xl bg-white p-6 shadow-lg ring-1 ring-slate-200/70 sm:p-8 lg:p-10">
@@ -297,7 +298,7 @@ export default function BlogPost() {
         <motion.aside
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 260, damping: 26, delay: 0.08 }}
+          transition={{ type: "spring", stiffness: 380, damping: 30, delay: 0.08 }}
           className="no-print hidden flex-col gap-4 lg:sticky lg:top-6 lg:flex lg:self-start"
         >
           <nav

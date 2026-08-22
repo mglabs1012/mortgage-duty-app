@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { Download, ExternalLink } from "lucide-react";
 import { usePwaInstall } from "../lib/usePwaInstall";
 

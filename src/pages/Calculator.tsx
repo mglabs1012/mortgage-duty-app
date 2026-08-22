@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import {
   IndianRupee,
   Building2,
@@ -18,7 +18,7 @@ import {
   ChevronDown,
   Copy,
   Check,
-  Megaphone,
+  BookOpen,
 } from "lucide-react";
 import { BrandMark } from "../components/BrandMark";
 import { FaqAccordion } from "../components/FaqAccordion";
@@ -79,15 +79,15 @@ function LedgerRow({ icon: Icon, label, hindi, value, capped }: LedgerRowProps) 
 
 const containerVariants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
+  show: { transition: { staggerChildren: 0.04, delayChildren: 0.02 } },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 16 },
+  hidden: { opacity: 0, y: 10 },
   show: {
     opacity: 1,
     y: 0,
-    transition: { type: "spring" as const, stiffness: 300, damping: 28 },
+    transition: { type: "spring" as const, stiffness: 420, damping: 34 },
   },
 };
 
@@ -182,8 +182,8 @@ export default function Calculator() {
   const handleShare = async () => {
     const text = buildSummary();
     try {
-      if (typeof navigator !== "undefined" && (navigator as any).share) {
-        await (navigator as any).share({
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({
           title: "Rajasthan Mortgage & Loan Duty",
           text,
         });
@@ -224,9 +224,6 @@ export default function Calculator() {
       className="relative min-h-screen w-full overflow-hidden bg-gradient-to-br from-slate-50 via-indigo-50/60 to-blue-100 px-4 py-6 sm:px-6 lg:px-10 lg:py-10"
     >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap');
-        .font-inter { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
-        .font-poppins { font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif; }
         @media print {
           .no-print { display: none !important; }
           .breakdown-rows { display: block !important; }
@@ -276,12 +273,12 @@ export default function Calculator() {
           <div className="flex items-center gap-1.5">
             <InstallAppButton />
             <Link
-              to="/updates"
-              aria-label="Updates"
+              to="/blog"
+              aria-label="Blog"
               className="flex items-center gap-1.5 rounded-full bg-gradient-to-b from-slate-800 via-slate-900 to-black px-3 py-1.5 font-inter text-xs font-semibold text-white shadow-md shadow-indigo-950/30 transition hover:from-slate-700 hover:to-black active:scale-95"
             >
-              <Megaphone className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Updates</span>
+              <BookOpen className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Blog</span>
             </Link>
           </div>
         </motion.header>

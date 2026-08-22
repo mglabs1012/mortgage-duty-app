@@ -1,18 +1,23 @@
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import {
   ArrowLeft,
   ArrowRight,
   BookOpen,
-  Megaphone,
   Calculator as CalculatorIcon,
   ListChecks,
   Sparkles,
+  Zap,
+  ShieldCheck,
 } from "lucide-react";
-import { POSTS } from "../data/posts";
-import { UPDATES } from "../data/updates";
+import { POSTS, getFeaturedPost } from "../data/posts";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
 import { splitMarkdownSections } from "../lib/markdown";
+
+const TRUST_POINTS = [
+  { icon: Zap, text: "Instant, free results — no signup" },
+  { icon: ShieldCheck, text: "e-GRAS aligned statutory rates" },
+];
 
 export default function BlogIndex() {
   useDocumentMeta({
@@ -22,18 +27,12 @@ export default function BlogIndex() {
     path: "/blog",
   });
 
-  const [featured, ...rest] = POSTS;
-  const latestUpdate = UPDATES[0];
+  const featured = getFeaturedPost();
+  const rest = POSTS.filter((p) => p.meta.slug !== featured?.meta.slug);
   const topics = featured ? splitMarkdownSections(featured.body).map((s) => s.title) : [];
 
   return (
     <div className="font-inter min-h-screen w-full bg-slate-50">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap');
-        .font-inter { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
-        .font-poppins { font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif; }
-      `}</style>
-
       {/* Hero */}
       <div className="relative overflow-hidden bg-gradient-to-br from-indigo-700 via-violet-800 to-slate-900 px-4 pb-10 pt-6 sm:px-6 sm:pb-12 lg:px-10">
         <div
@@ -55,27 +54,18 @@ export default function BlogIndex() {
         />
 
         <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-6">
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              to="/"
-              className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 font-inter text-xs font-semibold text-white/90 backdrop-blur transition hover:bg-white/20 active:scale-95"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Back to calculator
-            </Link>
-            <Link
-              to="/updates"
-              className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 font-inter text-xs font-semibold text-white/90 backdrop-blur transition hover:bg-white/20 active:scale-95"
-            >
-              <Megaphone className="h-3.5 w-3.5" />
-              Product updates
-            </Link>
-          </div>
+          <Link
+            to="/"
+            className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 font-inter text-xs font-semibold text-white/90 backdrop-blur transition hover:bg-white/20 active:scale-95"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back to calculator
+          </Link>
 
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 260, damping: 26 }}
+            transition={{ type: "spring", stiffness: 380, damping: 30 }}
             className="flex flex-col gap-4"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-white shadow-lg backdrop-blur">
@@ -98,9 +88,9 @@ export default function BlogIndex() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Featured article */}
             <motion.div
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ type: "spring", stiffness: 260, damping: 26 }}
+              transition={{ type: "spring", stiffness: 380, damping: 30 }}
               className="lg:col-span-2"
             >
               <Link
@@ -158,9 +148,9 @@ export default function BlogIndex() {
 
             {/* Sidebar */}
             <motion.div
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ type: "spring", stiffness: 260, damping: 26, delay: 0.08 }}
+              transition={{ type: "spring", stiffness: 380, damping: 30, delay: 0.05 }}
               className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start"
             >
               {topics.length > 0 && (
@@ -185,29 +175,23 @@ export default function BlogIndex() {
                 </div>
               )}
 
-              {latestUpdate && (
-                <Link
-                  to="/updates"
-                  className="group block rounded-2xl bg-white p-5 shadow-lg ring-1 ring-slate-200/70 transition hover:ring-indigo-300"
-                >
-                  <div className="flex items-center gap-2">
-                    <Megaphone className="h-4 w-4 text-violet-600" />
-                    <h3 className="font-poppins text-sm font-bold text-slate-800">
-                      Latest product update
-                    </h3>
-                  </div>
-                  <p className="mt-2 font-inter text-xs font-semibold text-slate-700">
-                    {latestUpdate.title}
-                  </p>
-                  <p className="mt-1 line-clamp-2 font-inter text-xs leading-relaxed text-slate-500">
-                    {latestUpdate.body}
-                  </p>
-                  <span className="mt-3 inline-flex items-center gap-1 font-inter text-xs font-bold text-indigo-700">
-                    View all updates
-                    <ArrowRight className="h-3 w-3 transition group-hover:translate-x-0.5" />
-                  </span>
-                </Link>
-              )}
+              <div className="rounded-2xl bg-white p-5 shadow-lg ring-1 ring-slate-200/70">
+                <h3 className="font-poppins text-sm font-bold text-slate-800">
+                  Why use this calculator
+                </h3>
+                <ul className="mt-3 space-y-2.5">
+                  {TRUST_POINTS.map((point) => (
+                    <li key={point.text} className="flex items-center gap-2.5">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                        <point.icon className="h-3.5 w-3.5" />
+                      </span>
+                      <span className="font-inter text-xs leading-snug text-slate-600">
+                        {point.text}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
               <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 p-5 text-center shadow-xl">
                 <p className="font-poppins text-sm font-extrabold text-white">
@@ -229,49 +213,58 @@ export default function BlogIndex() {
           </div>
         )}
 
-        {/* Additional posts, once published, appear here as a card grid */}
+        {/* Additional posts */}
         {rest.length > 0 && (
-          <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {rest.map((post, i) => (
-              <motion.div
-                key={post.meta.slug}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  type: "spring",
-                  stiffness: 260,
-                  damping: 26,
-                  delay: i * 0.06,
-                }}
-              >
-                <Link
-                  to={`/blog/${post.meta.slug}`}
-                  className="group block h-full rounded-2xl bg-white p-4 shadow-lg ring-1 ring-slate-200/70 transition hover:ring-indigo-300 sm:p-5"
+          <div className="mt-10">
+            <h2 className="font-poppins text-lg font-extrabold text-slate-900">
+              More Guides
+            </h2>
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {rest.map((post, i) => (
+                <motion.div
+                  key={post.meta.slug}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 380,
+                    damping: 30,
+                    delay: i * 0.04,
+                  }}
                 >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-indigo-100 px-2 py-0.5 font-inter text-[11px] font-bold text-indigo-700">
-                      {post.meta.tag}
+                  <Link
+                    to={`/blog/${post.meta.slug}`}
+                    className="group block h-full rounded-2xl bg-white p-4 shadow-lg ring-1 ring-slate-200/70 transition hover:ring-indigo-300 sm:p-5"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-indigo-100 px-2 py-0.5 font-inter text-[11px] font-bold text-indigo-700">
+                        {post.meta.tag}
+                      </span>
+                      <time
+                        dateTime={post.meta.date}
+                        className="font-inter text-xs text-slate-400"
+                      >
+                        {post.meta.dateLabel}
+                      </time>
+                      <span className="font-inter text-xs text-slate-300">·</span>
+                      <span className="font-inter text-xs text-slate-400">
+                        {post.meta.readingTime}
+                      </span>
+                    </div>
+                    <h3 className="font-poppins mt-2 text-base font-bold text-slate-900 group-hover:text-indigo-700">
+                      {post.meta.title}
+                    </h3>
+                    <p className="mt-1.5 font-inter text-sm leading-relaxed text-slate-500">
+                      {post.meta.description}
+                    </p>
+                    <span className="mt-3 inline-flex items-center gap-1 font-inter text-xs font-bold text-indigo-700">
+                      Read article
+                      <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
                     </span>
-                    <time
-                      dateTime={post.meta.date}
-                      className="font-inter text-xs text-slate-400"
-                    >
-                      {post.meta.dateLabel}
-                    </time>
-                  </div>
-                  <h2 className="font-poppins mt-2 text-base font-bold text-slate-900 group-hover:text-indigo-700">
-                    {post.meta.title}
-                  </h2>
-                  <p className="mt-1.5 font-inter text-sm leading-relaxed text-slate-500">
-                    {post.meta.description}
-                  </p>
-                  <span className="mt-3 inline-flex items-center gap-1 font-inter text-xs font-bold text-indigo-700">
-                    Read article
-                    <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
-                  </span>
-                </Link>
-              </motion.div>
-            ))}
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
           </div>
         )}
 

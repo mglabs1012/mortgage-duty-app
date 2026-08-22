@@ -1,19 +1,18 @@
 import { lazy, Suspense } from "react";
-import { Routes, Route, useLocation } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { AnimatePresence, motion } from "motion/react";
 import Calculator from "./pages/Calculator";
 
-const Updates = lazy(() => import("./pages/Updates"));
 const BlogIndex = lazy(() => import("./pages/BlogIndex"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 
 const pageVariants = {
-  initial: { opacity: 0, y: 18, scale: 0.985, filter: "blur(4px)" },
-  animate: { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" },
-  exit: { opacity: 0, y: -14, scale: 0.985, filter: "blur(4px)" },
+  initial: { opacity: 0, y: 10, scale: 0.99 },
+  animate: { opacity: 1, y: 0, scale: 1 },
+  exit: { opacity: 0, y: -8, scale: 0.99 },
 };
 
-const pageTransition = { type: "spring" as const, stiffness: 300, damping: 30, mass: 0.7 };
+const pageTransition = { type: "spring" as const, stiffness: 420, damping: 36, mass: 0.6 };
 
 export default function App() {
   const location = useLocation();
@@ -31,9 +30,10 @@ export default function App() {
         <Suspense fallback={null}>
           <Routes location={location}>
             <Route path="/" element={<Calculator />} />
-            <Route path="/updates" element={<Updates />} />
             <Route path="/blog" element={<BlogIndex />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
+            <Route path="/updates" element={<Navigate to="/blog" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
       </motion.div>

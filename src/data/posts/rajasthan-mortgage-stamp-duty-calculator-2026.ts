@@ -10,6 +10,7 @@ export const post: Post = {
     dateLabel: "24 Jul 2026",
     tag: "Guide",
     readingTime: "9 min read",
+    featured: true,
   },
   faq: [
     {
