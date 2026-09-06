@@ -3,12 +3,14 @@ import { post as rajasthanMortgageStampDutyCalculator2026 } from "./rajasthan-mo
 import { post as msmeStampDutyConcessionRajasthan } from "./msme-stamp-duty-concession-rajasthan";
 import { post as payStampDutyOnlineEgrasRajasthan } from "./pay-stamp-duty-online-egras-rajasthan";
 import { post as documentsRequiredMortgageRegistrationRajasthan } from "./documents-required-mortgage-registration-rajasthan";
+import { post as furtherChargeAdditionalLoanStampDutyRajasthan } from "./further-charge-additional-loan-stamp-duty-rajasthan";
 
 export const POSTS: Post[] = [
   rajasthanMortgageStampDutyCalculator2026,
   msmeStampDutyConcessionRajasthan,
   payStampDutyOnlineEgrasRajasthan,
   documentsRequiredMortgageRegistrationRajasthan,
+  furtherChargeAdditionalLoanStampDutyRajasthan,
 ].sort((a, b) => b.meta.date.localeCompare(a.meta.date));
 
 export function getPostBySlug(slug: string): Post | undefined {
