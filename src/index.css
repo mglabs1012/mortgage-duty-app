@@ -1,13 +1,336 @@
 @import "tailwindcss";
 
-html {
-  scroll-behavior: smooth;
+/* Class-based dark mode (html.dark), toggled by useTheme + the head script. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ------------------------------------------------------------------
+   Design tokens
+   Semantic colors resolve to CSS variables so every component gets
+   light + dark for free (bg-surface, text-ink, border-line, …).
+------------------------------------------------------------------- */
+@theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  /* Brand navy — taken from the logo */
+  --color-brand-50: #eef4fc;
+  --color-brand-100: #d9e6f8;
+  --color-brand-200: #b6cdef;
+  --color-brand-300: #87abe2;
+  --color-brand-400: #5585d1;
+  --color-brand-500: #3366bd;
+  --color-brand-600: #2552a3;
+  --color-brand-700: #1f4385;
+  --color-brand-800: #1d396d;
+  --color-brand-900: #1b305a;
+  --color-brand-950: #111d38;
+
+  /* Accent — the brand color that reads well as text/fill in either theme */
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+
+  /* Data-viz categorical slots (validated, see Calculator composition bar) */
+  --color-viz-1: var(--viz-1);
+  --color-viz-2: var(--viz-2);
+  --color-viz-3: var(--viz-3);
+  --color-viz-4: var(--viz-4);
+
+  --animate-float-slow: float-slow 18s ease-in-out infinite;
+  --animate-float-slower: float-slow 26s ease-in-out infinite reverse;
+  --animate-shimmer: shimmer 2.4s linear infinite;
+  --animate-pulse-ring: pulse-ring 2.2s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
 }
 
-.font-inter {
-  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+:root {
+  color-scheme: light;
+  --canvas: #f5f7fb;
+  --surface: #ffffff;
+  --surface-2: #f3f5f9;
+  --surface-3: #e9edf4;
+  --ink: #0b1220;
+  --ink-2: #3c4859;
+  --muted: #64748b;
+  --line: rgb(15 23 42 / 0.08);
+  --line-strong: rgb(15 23 42 / 0.14);
+  --accent: #2552a3;
+  --accent-soft: #eef4fc;
+  --accent-ink: #1f4385;
+  --viz-1: #2a78d6;
+  --viz-2: #eb6834;
+  --viz-3: #1baf7a;
+  --viz-4: #eda100;
+  --shadow-color: 222 47% 11%;
+  --glow: rgb(51 102 189 / 0.16);
 }
 
-.font-poppins {
-  font-family: "Poppins", ui-sans-serif, system-ui, sans-serif;
+.dark {
+  color-scheme: dark;
+  --canvas: #070b14;
+  --surface: #0e1524;
+  --surface-2: #141d30;
+  --surface-3: #1b263c;
+  --ink: #e8edf5;
+  --ink-2: #b3bdcc;
+  --muted: #8592a8;
+  --line: rgb(255 255 255 / 0.08);
+  --line-strong: rgb(255 255 255 / 0.14);
+  --accent: #87abe2;
+  --accent-soft: rgb(85 133 209 / 0.14);
+  --accent-ink: #b6cdef;
+  --viz-1: #3987e5;
+  --viz-2: #d95926;
+  --viz-3: #199e70;
+  --viz-4: #c98500;
+  --shadow-color: 0 0% 0%;
+  --glow: rgb(85 133 209 / 0.22);
+}
+
+/* ------------------------------------------------------------------
+   Base
+------------------------------------------------------------------- */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  ::selection {
+    background: rgb(51 102 189 / 0.22);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Reusable surfaces
+------------------------------------------------------------------- */
+@utility card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 1.5rem;
+  box-shadow:
+    0 1px 2px hsl(var(--shadow-color) / 0.04),
+    0 8px 24px -12px hsl(var(--shadow-color) / 0.12);
+}
+
+@utility card-hover {
+  transition:
+    transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.35s ease,
+    border-color 0.35s ease;
+  &:hover {
+    transform: translateY(-3px);
+    border-color: var(--line-strong);
+    box-shadow:
+      0 1px 2px hsl(var(--shadow-color) / 0.05),
+      0 22px 44px -18px hsl(var(--shadow-color) / 0.28);
+  }
+}
+
+@utility glass {
+  background: color-mix(in oklab, var(--surface) 72%, transparent);
+  backdrop-filter: saturate(1.6) blur(16px);
+  -webkit-backdrop-filter: saturate(1.6) blur(16px);
+}
+
+/* Subtle dotted grid used behind heroes */
+@utility bg-grid {
+  background-image: radial-gradient(circle at 1px 1px, var(--line-strong) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+@utility text-gradient {
+  background: linear-gradient(120deg, var(--ink) 10%, var(--accent) 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Grid-rows height animation that also degrades for print */
+@utility collapsible {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+  & > * {
+    min-height: 0;
+    overflow: hidden;
+  }
+  &[data-open="true"] {
+    grid-template-rows: 1fr;
+  }
+}
+
+/* Range slider — filled track driven by the --fill custom property */
+@utility range {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 22px;
+  background: transparent;
+  cursor: pointer;
+  --track: linear-gradient(
+    to right,
+    var(--range-color, var(--accent)) 0 var(--fill, 0%),
+    var(--surface-3) var(--fill, 0%) 100%
+  );
+  &::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--track);
+  }
+  &::-moz-range-track {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--track);
+  }
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    margin-top: -7px;
+    height: 20px;
+    width: 20px;
+    border-radius: 999px;
+    background: #fff;
+    border: 5px solid var(--range-color, var(--accent));
+    box-shadow: 0 2px 8px rgb(15 23 42 / 0.25);
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  &::-moz-range-thumb {
+    height: 12px;
+    width: 12px;
+    border-radius: 999px;
+    background: #fff;
+    border: 5px solid var(--range-color, var(--accent));
+    box-shadow: 0 2px 8px rgb(15 23 42 / 0.25);
+  }
+  &:hover::-webkit-slider-thumb,
+  &:active::-webkit-slider-thumb {
+    transform: scale(1.18);
+  }
+  &:focus-visible {
+    outline: none;
+  }
+  &:focus-visible::-webkit-slider-thumb {
+    box-shadow: 0 0 0 6px var(--accent-soft), 0 2px 8px rgb(15 23 42 / 0.25);
+  }
+}
+
+/* ------------------------------------------------------------------
+   Keyframes
+------------------------------------------------------------------- */
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  33% {
+    transform: translate3d(30px, -24px, 0) scale(1.06);
+  }
+  66% {
+    transform: translate3d(-24px, 18px, 0) scale(0.96);
+  }
+}
+
+@keyframes shimmer {
+  from {
+    transform: translateX(-120%) skewX(-18deg);
+  }
+  to {
+    transform: translateX(260%) skewX(-18deg);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgb(16 185 129 / 0.45);
+  }
+  80%,
+  100% {
+    box-shadow: 0 0 0 8px rgb(16 185 129 / 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Print — always a clean light receipt, regardless of theme
+------------------------------------------------------------------- */
+@media print {
+  :root,
+  .dark {
+    color-scheme: light;
+    --canvas: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #f3f5f9;
+    --ink: #0b1220;
+    --ink-2: #3c4859;
+    --muted: #64748b;
+    --line: rgb(15 23 42 / 0.14);
+    --accent: #1f4385;
+  }
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .collapsible {
+    grid-template-rows: 1fr !important;
+  }
+  .print-plain {
+    box-shadow: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+  #receipt {
+    box-shadow: none !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 12px;
+  }
+  @page {
+    margin: 14mm;
+  }
 }

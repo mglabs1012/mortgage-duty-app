@@ -1,27 +1,49 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import {
-  ArrowLeft,
   ArrowRight,
-  BookOpen,
   Calculator as CalculatorIcon,
+  Clock,
   ListChecks,
+  Search,
   Sparkles,
-  Zap,
-  ShieldCheck,
+  X,
 } from "lucide-react";
-import { POSTS, getFeaturedPost } from "../data/posts";
-import { SiteFooter } from "../components/SiteFooter";
+import { POSTS, getFeaturedPost, type Post } from "../data/posts";
+import { PostCover } from "../components/PostCover";
+import { Reveal } from "../components/Reveal";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
 import { splitMarkdownSections } from "../lib/markdown";
 
 const SITE_URL = "https://mortgage-duty-app.vercel.app";
+const ease = [0.22, 1, 0.36, 1] as const;
 
-const TRUST_POINTS = [
-  { icon: Zap, text: "Instant, free results — no signup" },
-  { icon: ShieldCheck, text: "e-GRAS aligned statutory rates" },
-];
+function PostMetaLine({ post, light = false }: { post: Post; light?: boolean }) {
+  const tone = light ? "text-white/70" : "text-muted";
+  return (
+    <div className={`flex flex-wrap items-center gap-x-2 gap-y-1 text-xs ${tone}`}>
+      <time dateTime={post.meta.date}>{post.meta.dateLabel}</time>
+      <span className="opacity-50">·</span>
+      <span className="inline-flex items-center gap-1">
+        <Clock className="h-3 w-3" />
+        {post.meta.readingTime}
+      </span>
+    </div>
+  );
+}
+
+function TagChip({ tag, onDark = false }: { tag: string; onDark?: boolean }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+        onDark ? "bg-white/15 text-white ring-1 ring-white/25 backdrop-blur" : "bg-accent-soft text-accent-ink"
+      }`}
+    >
+      {tag}
+    </span>
+  );
+}
 
 export default function BlogIndex() {
   useDocumentMeta({
@@ -31,15 +53,28 @@ export default function BlogIndex() {
     path: "/blog",
   });
 
+  const [query, setQuery] = useState("");
+  const [activeTag, setActiveTag] = useState("All");
+
   const featured = getFeaturedPost();
-  const rest = useMemo(
-    () => POSTS.filter((p) => p.meta.slug !== featured?.meta.slug),
-    [featured]
-  );
   const topics = useMemo(
     () => (featured ? splitMarkdownSections(featured.body).map((s) => s.title) : []),
     [featured]
   );
+  const tags = useMemo(() => ["All", ...Array.from(new Set(POSTS.map((p) => p.meta.tag)))], []);
+
+  const isFiltering = query.trim() !== "" || activeTag !== "All";
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return POSTS.filter((p) => {
+      if (activeTag !== "All" && p.meta.tag !== activeTag) return false;
+      if (!q) return true;
+      return `${p.meta.title} ${p.meta.description} ${p.meta.tag}`.toLowerCase().includes(q);
+    });
+  }, [query, activeTag]);
+
+  // Unfiltered view: featured hero + the rest. Filtered view: one flat grid.
+  const gridPosts = isFiltering ? filtered : filtered.filter((p) => p.meta.slug !== featured?.meta.slug);
 
   const listSchema = {
     "@context": "https://schema.org",
@@ -53,259 +88,309 @@ export default function BlogIndex() {
   };
 
   return (
-    <div className="font-inter min-h-screen w-full bg-slate-50">
-      {/* Hero */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-700 via-violet-800 to-slate-900 px-4 pb-10 pt-6 sm:px-6 sm:pb-12 lg:px-10">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-20"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
-            backgroundSize: "24px 24px",
-          }}
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-violet-400/30 blur-3xl"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -left-16 top-40 h-56 w-56 rounded-full bg-indigo-400/20 blur-3xl"
-        />
-
-        <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-6">
-          <Link
-            to="/"
-            className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 font-inter text-xs font-semibold text-white/90 backdrop-blur transition hover:bg-white/20 active:scale-95"
+    <div className="mx-auto w-full max-w-6xl px-4 pb-8 pt-8 sm:px-6 sm:pt-12 lg:px-8">
+      {/* ---------------- Header ---------------- */}
+      <motion.div
+        initial="hidden"
+        animate="show"
+        variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07 } } }}
+        className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between"
+      >
+        <div className="max-w-2xl">
+          <motion.nav
+            variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { ease } } }}
+            aria-label="Breadcrumb"
+            className="text-xs text-muted"
           >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Back to calculator
-          </Link>
-
-          <nav aria-label="Breadcrumb" className="font-inter text-xs text-white/50">
-            <Link to="/" className="transition hover:text-white/80">
+            <Link to="/" className="transition-colors hover:text-ink">
               Home
             </Link>
-            <span className="mx-1.5">/</span>
-            <span className="text-white/70">Blog</span>
-          </nav>
-
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 380, damping: 30 }}
-            className="flex flex-col gap-4"
+            <span className="mx-1.5 opacity-50">/</span>
+            <span className="text-ink-2">Blog</span>
+          </motion.nav>
+          <motion.h1
+            variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.6, ease } } }}
+            className="mt-4 font-display text-4xl font-extrabold tracking-tight text-ink sm:text-5xl"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-white shadow-lg backdrop-blur">
-              <BookOpen className="h-6 w-6" />
-            </div>
-            <h1 className="font-poppins text-3xl font-extrabold leading-tight text-white sm:text-4xl">
-              Blog
-            </h1>
-            <p className="max-w-lg font-inter text-sm leading-relaxed text-white/70">
-              Guides on Rajasthan mortgage stamp duty, registration fees, and
-              the statutory rules behind mortgage and loan deeds.
-            </p>
-          </motion.div>
+            Stamp duty, <span className="text-gradient">explained.</span>
+          </motion.h1>
+          <motion.p
+            variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.6, ease } } }}
+            className="mt-3 text-[15px] leading-relaxed text-muted sm:text-base"
+          >
+            Practical guides on Rajasthan mortgage stamp duty, registration fees, and the statutory
+            rules behind mortgage and loan deeds.
+          </motion.p>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="mx-auto w-full max-w-6xl px-4 pb-14 pt-8 sm:px-6 lg:px-10 lg:pt-10">
-        {featured && (
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            {/* Featured article */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ type: "spring", stiffness: 380, damping: 30 }}
-              className="lg:col-span-2"
-            >
-              <Link
-                to={`/blog/${featured.meta.slug}`}
-                className="group block overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-slate-200/70 transition hover:shadow-2xl hover:ring-indigo-300"
+        <motion.div
+          variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.6, ease } } }}
+          className="relative w-full lg:w-80"
+        >
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search guides…"
+            aria-label="Search guides"
+            className="h-12 w-full rounded-2xl border border-line bg-surface pl-11 pr-10 text-sm text-ink shadow-sm outline-none transition-all placeholder:text-muted focus:border-accent/60 focus:shadow-[0_0_0_4px_var(--accent-soft)] [&::-webkit-search-cancel-button]:hidden"
+          />
+          <AnimatePresence>
+            {query && (
+              <motion.button
+                type="button"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0 }}
+                onClick={() => setQuery("")}
+                aria-label="Clear search"
+                className="absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-surface-3 text-ink-2 hover:text-ink"
               >
-                <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-violet-700 to-slate-900 p-7 sm:p-10">
-                  <div
-                    aria-hidden
-                    className="pointer-events-none absolute inset-0 opacity-25"
-                    style={{
-                      backgroundImage:
-                        "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
-                      backgroundSize: "22px 22px",
-                    }}
+                <X className="h-3.5 w-3.5" />
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </motion.div>
+
+      {/* Tag filter */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease, delay: 0.2 }}
+        className="-mx-4 mt-8 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0"
+      >
+        <div role="tablist" aria-label="Filter by topic" className="flex w-max gap-1.5">
+          {tags.map((t) => {
+            const active = activeTag === t;
+            return (
+              <button
+                key={t}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setActiveTag(t)}
+                className={`relative h-9 rounded-full px-4 text-sm font-medium transition-colors ${
+                  active ? "text-white" : "text-ink-2 hover:bg-surface-2 hover:text-ink"
+                }`}
+              >
+                {active && (
+                  <motion.span
+                    layoutId="tag-pill"
+                    transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                    className="absolute inset-0 rounded-full bg-ink"
                   />
-                  <div
-                    aria-hidden
-                    className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl transition group-hover:bg-white/15"
-                  />
-                  <span className="relative inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 font-inter text-[11px] font-bold text-white backdrop-blur">
-                    <Sparkles className="h-3 w-3" />
-                    Featured Guide
-                  </span>
-                  <h2 className="relative mt-4 max-w-xl font-poppins text-2xl font-extrabold leading-tight text-white sm:text-3xl">
-                    {featured.meta.title}
-                  </h2>
-                </div>
-                <div className="p-6 sm:p-7">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-indigo-100 px-2 py-0.5 font-inter text-[11px] font-bold text-indigo-700">
-                      {featured.meta.tag}
-                    </span>
-                    <time
-                      dateTime={featured.meta.date}
-                      className="font-inter text-xs text-slate-400"
-                    >
-                      {featured.meta.dateLabel}
-                    </time>
-                    <span className="font-inter text-xs text-slate-300">·</span>
-                    <span className="font-inter text-xs text-slate-400">
-                      {featured.meta.readingTime}
-                    </span>
-                  </div>
-                  <p className="mt-3 font-inter text-sm leading-relaxed text-slate-600 sm:text-base">
-                    {featured.meta.description}
-                  </p>
-                  <span className="mt-4 inline-flex items-center gap-1.5 font-inter text-sm font-bold text-indigo-700">
-                    Read full article
-                    <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
-                  </span>
-                </div>
-              </Link>
-            </motion.div>
+                )}
+                <span className={`relative ${active ? "text-canvas" : ""}`}>{t}</span>
+              </button>
+            );
+          })}
+        </div>
+      </motion.div>
 
-            {/* Sidebar */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ type: "spring", stiffness: 380, damping: 30, delay: 0.05 }}
-              className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start"
-            >
-              {topics.length > 0 && (
-                <div className="rounded-2xl bg-white p-5 shadow-lg ring-1 ring-slate-200/70">
-                  <div className="flex items-center gap-2">
-                    <ListChecks className="h-4 w-4 text-indigo-600" />
-                    <h3 className="font-poppins text-sm font-bold text-slate-800">
-                      What this guide covers
-                    </h3>
-                  </div>
-                  <ul className="mt-3 space-y-2">
-                    {topics.slice(0, 7).map((t) => (
-                      <li
-                        key={t}
-                        className="flex items-start gap-2 font-inter text-xs leading-relaxed text-slate-600"
-                      >
-                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
-                        {t}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              <div className="rounded-2xl bg-white p-5 shadow-lg ring-1 ring-slate-200/70">
-                <h3 className="font-poppins text-sm font-bold text-slate-800">
-                  Why use this calculator
-                </h3>
-                <ul className="mt-3 space-y-2.5">
-                  {TRUST_POINTS.map((point) => (
-                    <li key={point.text} className="flex items-center gap-2.5">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
-                        <point.icon className="h-3.5 w-3.5" />
-                      </span>
-                      <span className="font-inter text-xs leading-snug text-slate-600">
-                        {point.text}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 p-5 text-center shadow-xl">
-                <p className="font-poppins text-sm font-extrabold text-white">
-                  Know your exact duty
-                </p>
-                <p className="mt-1 font-inter text-xs leading-relaxed text-white/70">
-                  Instant Rajasthan mortgage stamp duty &amp; registration fee
-                  estimate.
-                </p>
+      {/* ---------------- Featured ---------------- */}
+      <AnimatePresence initial={false}>
+        {!isFiltering && featured && (
+          <motion.div
+            key="featured"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.45, ease }}
+            className="overflow-hidden"
+          >
+            <div className="grid grid-cols-1 gap-5 pt-8 lg:grid-cols-3">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease, delay: 0.1 }}
+                className="lg:col-span-2"
+              >
                 <Link
-                  to="/"
-                  className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-2 font-inter text-xs font-bold text-indigo-700 shadow-md transition hover:bg-indigo-50 active:scale-95"
+                  to={`/blog/${featured.meta.slug}`}
+                  className="card card-hover group flex h-full flex-col overflow-hidden"
                 >
-                  <CalculatorIcon className="h-3.5 w-3.5" />
-                  Open Calculator
-                </Link>
-              </div>
-            </motion.div>
-          </div>
-        )}
-
-        {/* Additional posts */}
-        {rest.length > 0 && (
-          <div className="mt-10">
-            <h2 className="font-poppins text-lg font-extrabold text-slate-900">
-              More Guides
-            </h2>
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {rest.map((post, i) => (
-                <motion.div
-                  key={post.meta.slug}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 380,
-                    damping: 30,
-                    delay: i * 0.04,
-                  }}
-                >
-                  <Link
-                    to={`/blog/${post.meta.slug}`}
-                    className="group block h-full rounded-2xl bg-white p-4 shadow-lg ring-1 ring-slate-200/70 transition hover:ring-indigo-300 sm:p-5"
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-indigo-100 px-2 py-0.5 font-inter text-[11px] font-bold text-indigo-700">
-                        {post.meta.tag}
-                      </span>
-                      <time
-                        dateTime={post.meta.date}
-                        className="font-inter text-xs text-slate-400"
-                      >
-                        {post.meta.dateLabel}
-                      </time>
-                      <span className="font-inter text-xs text-slate-300">·</span>
-                      <span className="font-inter text-xs text-slate-400">
-                        {post.meta.readingTime}
-                      </span>
+                  <div className="relative min-h-[14rem] flex-1 sm:min-h-[17rem]">
+                    <div className="absolute inset-0">
+                      <PostCover tag={featured.meta.tag} size="lg" className="h-full" />
                     </div>
-                    <h3 className="font-poppins mt-2 text-base font-bold text-slate-900 group-hover:text-indigo-700">
+                    <div className="absolute inset-x-0 bottom-0 flex flex-col gap-3 p-6 sm:p-8">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-brand-800 shadow">
+                          <Sparkles className="h-3 w-3" />
+                          Featured
+                        </span>
+                        <TagChip tag={featured.meta.tag} onDark />
+                      </div>
+                      <h2 className="max-w-xl font-display text-2xl font-extrabold leading-tight tracking-tight text-white sm:text-3xl">
+                        {featured.meta.title}
+                      </h2>
+                    </div>
+                  </div>
+                  <div className="flex flex-col p-6 sm:p-8">
+                    <PostMetaLine post={featured} />
+                    <p className="mt-3 text-[15px] leading-relaxed text-ink-2">{featured.meta.description}</p>
+                    <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-accent">
+                      Read the full guide
+                      <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                    </span>
+                  </div>
+                </Link>
+              </motion.div>
+
+              <motion.aside
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease, delay: 0.18 }}
+                className="flex flex-col gap-5"
+              >
+                {topics.length > 0 && (
+                  <div className="card flex-1 p-6">
+                    <div className="flex items-center gap-2">
+                      <ListChecks className="h-4 w-4 text-accent" />
+                      <h3 className="font-display text-sm font-bold text-ink">Inside the featured guide</h3>
+                    </div>
+                    <ol className="mt-4 space-y-2.5">
+                      {topics.slice(0, 7).map((t, i) => (
+                        <li key={t} className="flex items-start gap-3 text-sm leading-snug text-ink-2">
+                          <span className="mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-surface-2 text-[10px] font-bold tabular-nums text-muted">
+                            {i + 1}
+                          </span>
+                          {t}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+
+                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-500 via-brand-700 to-brand-950 p-6 text-white shadow-[0_20px_40px_-20px_rgb(17_29_56/0.6)]">
+                  <div aria-hidden className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-white/15 blur-2xl" />
+                  <p className="relative font-display text-lg font-extrabold">Know your exact duty</p>
+                  <p className="relative mt-1 text-sm leading-relaxed text-white/70">
+                    Instant Rajasthan mortgage stamp duty &amp; registration fee estimate.
+                  </p>
+                  <Link
+                    to="/"
+                    className="group relative mt-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-brand-800 shadow-md transition hover:shadow-lg"
+                  >
+                    <CalculatorIcon className="h-4 w-4" />
+                    Open calculator
+                    <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                </div>
+              </motion.aside>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ---------------- Grid ---------------- */}
+      <section className="mt-12">
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="font-display text-xl font-extrabold tracking-tight text-ink">
+            {isFiltering ? "Results" : "More guides"}
+          </h2>
+          <span className="text-sm tabular-nums text-muted">
+            {gridPosts.length} {gridPosts.length === 1 ? "article" : "articles"}
+          </span>
+        </div>
+
+        <motion.div
+          layout
+          className={`mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 ${
+            gridPosts.length === 2 || gridPosts.length === 4 ? "" : "lg:grid-cols-3"
+          }`}
+        >
+          <AnimatePresence mode="popLayout">
+            {gridPosts.map((post, i) => (
+              <motion.div
+                key={post.meta.slug}
+                layout
+                initial={{ opacity: 0, y: 24, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ duration: 0.45, ease, delay: Math.min(i, 6) * 0.05 }}
+              >
+                <Link
+                  to={`/blog/${post.meta.slug}`}
+                  className="card card-hover group flex h-full flex-col overflow-hidden"
+                >
+                  <div className="relative">
+                    <PostCover tag={post.meta.tag} className="h-36" />
+                    <div className="absolute left-4 top-4">
+                      <TagChip tag={post.meta.tag} onDark />
+                    </div>
+                  </div>
+                  <div className="flex flex-1 flex-col p-5">
+                    <PostMetaLine post={post} />
+                    <h3 className="mt-2 font-display text-[17px] font-bold leading-snug tracking-tight text-ink transition-colors group-hover:text-accent">
                       {post.meta.title}
                     </h3>
-                    <p className="mt-1.5 font-inter text-sm leading-relaxed text-slate-500">
+                    <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted">
                       {post.meta.description}
                     </p>
-                    <span className="mt-3 inline-flex items-center gap-1 font-inter text-xs font-bold text-indigo-700">
+                    <span className="mt-auto inline-flex items-center gap-1 pt-4 text-sm font-semibold text-accent">
                       Read article
-                      <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
+                      <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
                     </span>
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        )}
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
 
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(listSchema) }}
-        />
+        <AnimatePresence>
+          {gridPosts.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="card mt-2 flex flex-col items-center gap-3 px-6 py-14 text-center"
+            >
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-2 text-muted">
+                <Search className="h-5 w-5" />
+              </span>
+              <p className="font-display text-base font-bold text-ink">No guides match that search</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  setActiveTag("All");
+                }}
+                className="text-sm font-semibold text-accent hover:underline"
+              >
+                Clear filters
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </section>
 
-        <footer className="mt-10 px-1 pb-1 text-center font-inter text-xs text-slate-400">
-          <SiteFooter />
-        </footer>
-      </div>
+      {/* ---------------- CTA band ---------------- */}
+      <Reveal className="mt-20">
+        <div className="relative overflow-hidden rounded-[2rem] border border-line bg-surface px-6 py-10 text-center sm:px-12 sm:py-14">
+          <div aria-hidden className="bg-grid absolute inset-0 opacity-70 [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)]" />
+          <div aria-hidden className="absolute -bottom-24 left-1/2 h-48 w-[36rem] -translate-x-1/2 rounded-full bg-brand-400/25 blur-3xl" />
+          <h2 className="relative font-display text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
+            Ready to calculate your mortgage duty?
+          </h2>
+          <p className="relative mx-auto mt-3 max-w-md text-[15px] text-muted">
+            Enter the loan amount, pick a category, and get an instant e-GRAS-aligned estimate.
+          </p>
+          <Link
+            to="/"
+            className="group relative mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-b from-brand-500 to-brand-700 px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_28px_-12px_rgb(31_67_133/0.9)] transition hover:brightness-110"
+          >
+            <CalculatorIcon className="h-4 w-4" />
+            Open the calculator
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </Link>
+        </div>
+      </Reveal>
+
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(listSchema) }} />
     </div>
   );
 }

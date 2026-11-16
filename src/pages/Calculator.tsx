@@ -1,30 +1,32 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import {
-  IndianRupee,
-  Building2,
-  Factory,
-  Stamp,
-  HardHat,
-  FileSignature,
-  Globe,
   AlertTriangle,
-  Receipt,
-  X,
-  Share2,
-  Printer,
-  ShieldCheck,
+  ArrowRight,
+  ArrowUpRight,
+  BadgePercent,
+  BookOpen,
+  Building2,
+  Check,
   ChevronDown,
   Copy,
-  Check,
-  BookOpen,
+  Factory,
+  FileSignature,
+  Globe,
+  HardHat,
+  Landmark,
+  Printer,
+  Receipt,
+  Share2,
+  ShieldCheck,
+  Sparkles,
+  Stamp,
+  X,
 } from "lucide-react";
-import { BrandMark } from "../components/BrandMark";
 import { FaqAccordion } from "../components/FaqAccordion";
 import { AnimatedAmount } from "../components/AnimatedAmount";
-import { InstallAppButton } from "../components/InstallAppButton";
-import { SiteFooter } from "../components/SiteFooter";
+import { Reveal } from "../components/Reveal";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
 import {
   CSI_CHARGE,
@@ -34,63 +36,212 @@ import {
   STAMP_CAP,
   REG_RATE,
   REG_CAP,
+  amountInWords,
+  computeDuty,
   inr,
   grouped,
   pct,
   FAQ_ITEMS,
   faqSchema,
+  type DutyCategory,
 } from "../lib/stampDuty";
 
+const ease = [0.22, 1, 0.36, 1] as const;
+const spring = { type: "spring" as const, stiffness: 420, damping: 34 };
+
+const containerVariants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.07, delayChildren: 0.05 } },
+};
+const itemVariants = {
+  hidden: { opacity: 0, y: 18 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease } },
+};
+
+/* ---------- Loan slider: log scale from ₹10K to ₹100Cr ---------- */
+const SLIDER_MIN_EXP = 4; // 10^4
+const SLIDER_SPAN = 5; // up to 10^9
+const SLIDER_STEPS = 1000;
+
+function sliderToAmount(pos: number): number {
+  const v = Math.pow(10, SLIDER_MIN_EXP + (pos / SLIDER_STEPS) * SLIDER_SPAN);
+  const step = v < 1e5 ? 1e3 : v < 1e6 ? 1e4 : v < 1e7 ? 5e4 : v < 1e8 ? 5e5 : 5e6;
+  return Math.round(v / step) * step;
+}
+function amountToSlider(amount: number): number {
+  if (amount <= 0) return 0;
+  const p = ((Math.log10(amount) - SLIDER_MIN_EXP) / SLIDER_SPAN) * SLIDER_STEPS;
+  return Math.min(SLIDER_STEPS, Math.max(0, p));
+}
+const SLIDER_TICKS = ["10K", "1L", "10L", "1Cr", "10Cr", "100Cr"];
+
+const PRESETS = [
+  { label: "₹10L", v: "1000000" },
+  { label: "₹25L", v: "2500000" },
+  { label: "₹50L", v: "5000000" },
+  { label: "₹1Cr", v: "10000000" },
+];
+
+const CATEGORIES: {
+  id: DutyCategory;
+  icon: React.ElementType;
+  title: string;
+  hint: string;
+}[] = [
+  {
+    id: "Standard",
+    icon: Building2,
+    title: "Standard",
+    hint: `${pct(STAMP_RATE.standard)}% · max ₹${amountInWords(STAMP_CAP.standard)}`,
+  },
+  {
+    id: "MSME",
+    icon: Factory,
+    title: "MSME",
+    hint: `${pct(STAMP_RATE.msme)}% · max ₹${amountInWords(STAMP_CAP.msme)}`,
+  },
+];
+
+/* ---------- Ledger row (prints) ---------- */
 type LedgerRowProps = {
   icon: React.ElementType;
   label: string;
   hindi: string;
   value: number;
   capped?: boolean;
+  swatch?: string;
 };
 
-function LedgerRow({ icon: Icon, label, hindi, value, capped }: LedgerRowProps) {
+function LedgerRow({ icon: Icon, label, hindi, value, capped, swatch }: LedgerRowProps) {
   return (
-    <div className="flex items-center justify-between gap-2 border-b border-slate-100 py-2.5 last:border-b-0">
-      <div className="flex min-w-0 items-center gap-2.5">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+    <div className="flex items-center justify-between gap-3 border-b border-line py-3 last:border-b-0">
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink-2">
           <Icon className="h-4 w-4" />
+          {swatch && (
+            <span
+              aria-hidden
+              className="no-print absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-surface"
+              style={{ background: swatch }}
+            />
+          )}
         </div>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="font-inter text-sm font-semibold text-slate-700">
-              {label}
-            </span>
+            <span className="text-sm font-medium text-ink">{label}</span>
             {capped && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-bold text-amber-700 ring-1 ring-amber-200">
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/12 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 ring-1 ring-amber-500/30 dark:text-amber-300">
                 <AlertTriangle className="h-3 w-3" />
-                Cap
+                Capped
               </span>
             )}
           </div>
-          <span className="block font-inter text-xs text-slate-400">{hindi}</span>
+          <span className="block text-xs text-muted">{hindi}</span>
         </div>
       </div>
-      <span className="shrink-0 font-poppins text-sm font-bold tabular-nums text-slate-900">
+      <span className="shrink-0 font-display text-sm font-bold tabular-nums text-ink">
         {inr(value)}
       </span>
     </div>
   );
 }
 
-const containerVariants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.04, delayChildren: 0.02 } },
-};
+/* ---------- Composition bar ---------- */
+type Part = { key: string; label: string; value: number; color: string };
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { type: "spring" as const, stiffness: 420, damping: 34 },
-  },
-};
+function CompositionBar({ parts, total }: { parts: Part[]; total: number }) {
+  const [hover, setHover] = useState<string | null>(null);
+  const visible = parts.filter((p) => p.value > 0);
+
+  const geometry = visible.reduce<(Part & { share: number; start: number; mid: number })[]>(
+    (acc, p) => {
+      const share = total ? p.value / total : 0;
+      const prev = acc[acc.length - 1];
+      const start = prev ? prev.start + prev.share : 0;
+      return [...acc, { ...p, share, start, mid: start + share / 2 }];
+    },
+    []
+  );
+  const hovered = geometry.find((g) => g.key === hover);
+
+  const summary = total
+    ? geometry.map((g) => `${g.label} ${inr(g.value)} (${Math.round(g.share * 100)}%)`).join(", ")
+    : "No amount entered";
+
+  return (
+    <div>
+      <div className="relative pt-1">
+        <AnimatePresence>
+          {hovered && (
+            <motion.div
+              key="tip"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              transition={{ duration: 0.15 }}
+              className="pointer-events-none absolute bottom-full z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg border border-line-strong bg-surface px-2.5 py-1.5 text-xs shadow-lg"
+              style={{ left: `${Math.min(85, Math.max(15, hovered.mid * 100))}%` }}
+            >
+              <span className="font-semibold text-ink">{hovered.label}</span>
+              <span className="mx-1.5 text-muted">·</span>
+              <span className="tabular-nums text-ink-2">
+                {inr(hovered.value)} ({Math.round(hovered.share * 100)}%)
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <div
+          role="img"
+          aria-label={`Cost composition: ${summary}`}
+          className={`flex h-2.5 w-full gap-[2px] overflow-hidden rounded-full ${total ? "" : "bg-surface-3"}`}
+          onMouseLeave={() => setHover(null)}
+        >
+          {geometry.map((g) => (
+            <motion.div
+              key={g.key}
+              initial={{ flexGrow: 0 }}
+              animate={{ flexGrow: g.value, opacity: hover && hover !== g.key ? 0.3 : 1 }}
+              transition={{ type: "spring", stiffness: 180, damping: 26 }}
+              onMouseEnter={() => setHover(g.key)}
+              className="h-full min-w-[3px] basis-0 cursor-default"
+              style={{ background: g.color }}
+            />
+          ))}
+        </div>
+      </div>
+
+      <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
+        {parts.map((p) => {
+          const share = total ? Math.round((p.value / total) * 100) : 0;
+          const dim = hover && hover !== p.key;
+          return (
+            <li
+              key={p.key}
+              onMouseEnter={() => p.value > 0 && setHover(p.key)}
+              onMouseLeave={() => setHover(null)}
+              className={`flex min-w-0 items-start gap-2 transition-opacity duration-200 ${dim ? "opacity-40" : ""}`}
+            >
+              <span
+                aria-hidden
+                className="mt-1 h-2.5 w-2.5 shrink-0 rounded-[3px]"
+                style={{ background: p.color }}
+              />
+              <div className="min-w-0">
+                <p className="truncate text-xs text-muted">{p.label}</p>
+                <p className="text-sm font-semibold tabular-nums text-ink">
+                  {inr(p.value)}
+                  <span className="ml-1.5 text-xs font-medium text-muted">{share}%</span>
+                </p>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+/* ================================================================== */
 
 export default function Calculator() {
   useDocumentMeta({
@@ -101,51 +252,39 @@ export default function Calculator() {
   });
 
   const [raw, setRaw] = useState<string>("");
-  const [category, setCategory] = useState<"Standard" | "MSME">("Standard");
+  const [category, setCategory] = useState<DutyCategory>("Standard");
   const [copied, setCopied] = useState<boolean>(false);
-  const [open, setOpen] = useState<boolean>(false); // breakdown collapsed by default
+  // Breakdown open by default on desktop, collapsed on phones to keep the page short.
+  const [open, setOpen] = useState<boolean>(
+    () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches
+  );
 
   const loanAmount = Number(raw || 0);
   const isMsme = category === "MSME";
 
-  // ---- Statutory engine (Rajasthan 2026, e-GRAS aligned) ----
-  const stampRate = isMsme ? STAMP_RATE.msme : STAMP_RATE.standard;
-  const stampCap = isMsme ? STAMP_CAP.msme : STAMP_CAP.standard;
-  const rawStamp = loanAmount * stampRate;
-  const stampCapped = rawStamp > stampCap;
-  const stampDuty = Math.round(Math.min(rawStamp, stampCap));
+  const d = useMemo(() => computeDuty(loanAmount, category), [loanAmount, category]);
+  const standard = useMemo(() => computeDuty(loanAmount, "Standard"), [loanAmount]);
+  const msmeSavings = isMsme ? standard.grandTotal - d.grandTotal : 0;
 
-  const infraSurcharge = Math.round(stampDuty * SURCHARGE_RATES.infrastructure);
-  const cowSurcharge = Math.round(stampDuty * SURCHARGE_RATES.cowProtection);
-  const calamitySurcharge = Math.round(stampDuty * SURCHARGE_RATES.naturalCalamity);
+  const today = new Date().toLocaleDateString("en-IN");
 
-  const regCap = REG_CAP;
-  const rawReg = loanAmount * REG_RATE;
-  const regCapped = rawReg > regCap;
-  const regFee = Math.round(Math.min(rawReg, regCap));
-
-  const csi = loanAmount > CSI_MIN_LOAN ? CSI_CHARGE : 0;
-
-  const grandTotal =
-    stampDuty + infraSurcharge + cowSurcharge + calamitySurcharge + regFee + csi;
+  /* ---- Mobile floating total bar: shown while the total card is off-screen ---- */
+  const totalRef = useRef<HTMLDivElement>(null);
+  const [totalInView, setTotalInView] = useState(true);
+  useEffect(() => {
+    const el = totalRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setTotalInView(e.isIntersecting), {
+      rootMargin: "-64px 0px 0px 0px",
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const digits = e.target.value.replace(/[^0-9]/g, "").slice(0, 12);
+    const digits = e.target.value.replace(/[^0-9]/g, "").replace(/^0+/, "").slice(0, 12);
     setRaw(digits);
   };
-
-  const presets = [
-    { label: "₹10L", v: "1000000" },
-    { label: "₹25L", v: "2500000" },
-    { label: "₹50L", v: "5000000" },
-    { label: "₹1Cr", v: "10000000" },
-  ];
-
-  const totalGrad = isMsme
-    ? "from-emerald-700 via-teal-800 to-slate-900"
-    : "from-indigo-600 via-indigo-700 to-violet-800";
-  const accentText = isMsme ? "text-emerald-700" : "text-indigo-700";
-  const today = new Date().toLocaleDateString("en-IN");
 
   const buildSummary = () =>
     [
@@ -153,14 +292,14 @@ export default function Calculator() {
       `Loan Amount: ${inr(loanAmount)}`,
       `Date: ${today}`,
       `------------------------------`,
-      `Stamp Duty Payable: ${inr(stampDuty)}`,
-      `Infrastructure Surcharge (${pct(SURCHARGE_RATES.infrastructure)}%): ${inr(infraSurcharge)}`,
-      `Cow Protection Surcharge (${pct(SURCHARGE_RATES.cowProtection)}%): ${inr(cowSurcharge)}`,
-      `Natural Calamity Surcharge (${pct(SURCHARGE_RATES.naturalCalamity)}%): ${inr(calamitySurcharge)}`,
-      `Registration Fee: ${inr(regFee)}`,
-      `CSI Charges: ${inr(csi)}`,
+      `Stamp Duty Payable: ${inr(d.stampDuty)}`,
+      `Infrastructure Surcharge (${pct(SURCHARGE_RATES.infrastructure)}%): ${inr(d.infraSurcharge)}`,
+      `Cow Protection Surcharge (${pct(SURCHARGE_RATES.cowProtection)}%): ${inr(d.cowSurcharge)}`,
+      `Natural Calamity Surcharge (${pct(SURCHARGE_RATES.naturalCalamity)}%): ${inr(d.calamitySurcharge)}`,
+      `Registration Fee: ${inr(d.regFee)}`,
+      `CSI Charges: ${inr(d.csi)}`,
       `------------------------------`,
-      `TOTAL PAYABLE (approx.): ${inr(grandTotal)}`,
+      `TOTAL PAYABLE (approx.): ${inr(d.grandTotal)}`,
       ``,
       `Approximate figure, subject to final valuation by the Sub-Registrar.`,
       `Matches Rajasthan e-GRAS calculation (for guidance only).`,
@@ -184,10 +323,7 @@ export default function Calculator() {
     const text = buildSummary();
     try {
       if (typeof navigator !== "undefined" && navigator.share) {
-        await navigator.share({
-          title: "Rajasthan Mortgage & Loan Duty",
-          text,
-        });
+        await navigator.share({ title: "Rajasthan Mortgage & Loan Duty", text });
         return;
       }
       await navigator.clipboard.writeText(text);
@@ -202,442 +338,741 @@ export default function Calculator() {
     }
   };
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    setOpen(true);
+    // Let the breakdown expand before the print snapshot.
+    requestAnimationFrame(() => window.print());
+  };
 
-  const actionBase =
-    "flex items-center justify-center gap-1.5 rounded-xl py-3 font-inter text-sm font-bold transition active:scale-95";
+  const parts: Part[] = [
+    { key: "stamp", label: "Stamp duty", value: d.stampDuty, color: "var(--viz-1)" },
+    { key: "surcharge", label: "Surcharges", value: d.surchargeTotal, color: "var(--viz-2)" },
+    { key: "reg", label: "Registration fee", value: d.regFee, color: "var(--viz-3)" },
+    { key: "csi", label: "CSI charge", value: d.csi, color: "var(--viz-4)" },
+  ];
 
-  const cardBase =
-    "rounded-3xl bg-white/90 backdrop-blur-xl shadow-[0_2px_10px_rgba(15,23,42,0.04),0_12px_32px_-12px_rgba(30,41,59,0.14)] ring-1 ring-slate-900/[0.06]";
+  const sliderPos = amountToSlider(loanAmount);
+  const words = amountInWords(loanAmount);
 
-  const surchargeTotal = infraSurcharge + cowSurcharge + calamitySurcharge;
-  const regAndCsi = regFee + csi;
+  const appliedRates = [
+    {
+      label: "Stamp duty",
+      value: `${pct(isMsme ? STAMP_RATE.msme : STAMP_RATE.standard)}%`,
+      note: `cap ${inr(isMsme ? STAMP_CAP.msme : STAMP_CAP.standard)}`,
+    },
+    {
+      label: "Surcharges",
+      value: `${pct(
+        SURCHARGE_RATES.infrastructure + SURCHARGE_RATES.cowProtection + SURCHARGE_RATES.naturalCalamity
+      )}%`,
+      note: "of stamp duty",
+    },
+    { label: "Registration", value: `${pct(REG_RATE)}%`, note: `cap ${inr(REG_CAP)}` },
+    { label: "CSI portal", value: inr(CSI_CHARGE), note: `above ${inr(CSI_MIN_LOAN)}` },
+  ];
 
-  const kpis = [
-    { icon: Stamp, label: "Stamp Duty", value: stampDuty, tint: "from-indigo-500 to-violet-600" },
-    { icon: ShieldCheck, label: "Surcharges", value: surchargeTotal, tint: "from-amber-500 to-orange-600" },
-    { icon: FileSignature, label: "Reg. + CSI", value: regAndCsi, tint: "from-sky-500 to-blue-600" },
+  const steps = [
+    {
+      icon: Stamp,
+      title: "Stamp duty",
+      body: `${pct(STAMP_RATE.standard)}% of the loan amount (${pct(STAMP_RATE.msme)}% for MSMEs), capped at ${inr(
+        STAMP_CAP.standard
+      )} / ${inr(STAMP_CAP.msme)}.`,
+      color: "var(--viz-1)",
+    },
+    {
+      icon: ShieldCheck,
+      title: "Three surcharges",
+      body: `Infrastructure ${pct(SURCHARGE_RATES.infrastructure)}% + Cow Protection ${pct(
+        SURCHARGE_RATES.cowProtection
+      )}% + Natural Calamity ${pct(SURCHARGE_RATES.naturalCalamity)}%, all levied on the stamp duty.`,
+      color: "var(--viz-2)",
+    },
+    {
+      icon: FileSignature,
+      title: "Registration + CSI",
+      body: `Registration fee of ${pct(REG_RATE)}% (max ${inr(REG_CAP)}) plus a flat ${inr(
+        CSI_CHARGE
+      )} CSI portal charge on loans above ${inr(CSI_MIN_LOAN)}.`,
+      color: "var(--viz-3)",
+    },
   ];
 
   return (
-    <div
-      id="app-bg"
-      className="relative min-h-screen w-full overflow-hidden bg-gradient-to-br from-slate-50 via-indigo-50/60 to-blue-100 px-4 py-6 sm:px-6 lg:px-10 lg:py-10"
-    >
-      <style>{`
-        @media print {
-          .no-print { display: none !important; }
-          .breakdown-rows { display: block !important; }
-          .total-row { display: flex !important; }
-          #app-bg { background: #ffffff !important; padding: 0 !important; display: block !important; min-height: 0 !important; }
-          .dashboard-shell { display: block !important; }
-          #receipt { box-shadow: none !important; border: 1px solid #cbd5e1 !important; border-radius: 12px; }
-          @page { margin: 14mm; }
-        }
-      `}</style>
-
-      {/* Ambient background — no-print, purely decorative */}
-      <div
-        aria-hidden
-        className="no-print pointer-events-none absolute inset-0 opacity-[0.35]"
-        style={{
-          backgroundImage: "radial-gradient(circle at 1px 1px, rgb(99 102 241 / 0.18) 1px, transparent 0)",
-          backgroundSize: "28px 28px",
-          maskImage: "radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%)",
-        }}
-      />
-      <div
-        aria-hidden
-        className="no-print pointer-events-none absolute -right-20 -top-24 h-96 w-96 rounded-full bg-indigo-300/25 blur-3xl"
-      />
-      <div
-        aria-hidden
-        className="no-print pointer-events-none absolute -left-24 top-1/3 h-72 w-72 rounded-full bg-blue-300/20 blur-3xl"
-      />
-      <div
-        aria-hidden
-        className="no-print pointer-events-none absolute bottom-0 right-1/4 h-64 w-64 rounded-full bg-violet-300/15 blur-3xl"
-      />
-
+    <div className="mx-auto w-full max-w-6xl px-4 pb-8 pt-8 sm:px-6 sm:pt-12 lg:px-8">
+      {/* ---------------- Hero ---------------- */}
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-4 lg:gap-6"
+        className="no-print mx-auto mb-8 flex max-w-3xl flex-col items-center text-center sm:mb-10"
       >
-        {/* Topbar */}
-        <motion.header
+        <motion.span
           variants={itemVariants}
-          className="no-print flex items-center justify-between gap-2 rounded-2xl bg-white/80 px-3.5 py-3 shadow-sm ring-1 ring-slate-900/[0.06] backdrop-blur-xl sm:px-4 lg:px-5"
+          className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/80 px-3 py-1 text-xs font-medium text-ink-2 shadow-sm backdrop-blur"
         >
-          <BrandMark />
-          <div className="flex items-center gap-1.5">
-            <InstallAppButton />
-            <Link
-              to="/blog"
-              aria-label="Blog"
-              className="flex items-center gap-1.5 rounded-full bg-gradient-to-b from-slate-800 via-slate-900 to-black px-3 py-1.5 font-inter text-xs font-semibold text-white shadow-md shadow-indigo-950/30 transition hover:from-slate-700 hover:to-black active:scale-95"
-            >
-              <BookOpen className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Blog</span>
-            </Link>
-          </div>
-        </motion.header>
-
-        {/* Dashboard grid: input sidebar (left) + results (right) */}
-        <div className="dashboard-shell grid grid-cols-1 items-start gap-4 lg:grid-cols-2 lg:gap-6">
-          {/* Left column — inputs */}
-          <div className="dashboard-shell flex flex-col gap-4 lg:sticky lg:top-6">
-            <motion.section
-              variants={itemVariants}
-              className={`no-print ${cardBase} p-4 sm:p-5`}
-            >
-              <div className="mb-2 flex items-center justify-between">
-                <label className="font-inter text-sm font-semibold text-slate-600">
-                  Loan Amount <span className="font-normal text-slate-400">ऋण राशि</span>
-                </label>
-                <span className="rounded-full bg-slate-900 px-2.5 py-1 font-inter text-xs font-semibold text-white">
-                  2026
-                </span>
-              </div>
-
-              <div className="relative flex items-center rounded-xl bg-slate-50 px-3.5 py-3 ring-1 ring-slate-200 transition focus-within:ring-2 focus-within:ring-indigo-500">
-                <IndianRupee className="mr-1.5 h-6 w-6 shrink-0 text-slate-400" />
-                <input
-                  value={grouped(raw)}
-                  onChange={onChange}
-                  inputMode="numeric"
-                  type="text"
-                  placeholder="0"
-                  className="font-poppins w-full bg-transparent pr-10 text-2xl font-bold tabular-nums text-slate-900 outline-none placeholder:text-slate-300 sm:text-3xl"
-                />
-                {raw && (
-                  <button
-                    onClick={() => setRaw("")}
-                    aria-label="Clear amount"
-                    className="absolute right-2.5 flex h-7 w-7 items-center justify-center rounded-full bg-red-50 text-red-600 ring-1 ring-red-200 transition hover:bg-red-100 active:scale-95"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-
-              {/* Presets */}
-              <div className="relative mt-2.5 grid grid-cols-4 gap-1.5">
-                {presets.map((p) => {
-                  const active = raw === p.v;
-                  return (
-                    <button
-                      key={p.v}
-                      onClick={() => setRaw(p.v)}
-                      className={`relative z-10 font-inter rounded-lg py-2 text-xs font-semibold transition active:scale-95 ${
-                        active ? "text-white" : "text-slate-600 hover:bg-slate-200"
-                      }`}
-                    >
-                      {active && (
-                        <motion.span
-                          layoutId="presetPill"
-                          transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                          className="absolute inset-0 -z-10 rounded-lg bg-indigo-600 shadow-sm shadow-indigo-600/30"
-                        />
-                      )}
-                      {p.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Segmented control */}
-              <div className="relative mt-3 grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
-                <button
-                  onClick={() => setCategory("Standard")}
-                  className={`relative z-10 flex items-center justify-center gap-1.5 rounded-lg py-2.5 font-inter text-sm font-bold transition ${
-                    !isMsme ? "text-white" : "text-slate-500"
-                  }`}
-                >
-                  {!isMsme && (
-                    <motion.span
-                      layoutId="segPill"
-                      transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                      className="absolute inset-0 -z-10 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-700 shadow-md shadow-indigo-600/30"
-                    />
-                  )}
-                  <Building2 className="h-4 w-4" />
-                  Standard
-                </button>
-                <button
-                  onClick={() => setCategory("MSME")}
-                  className={`relative z-10 flex items-center justify-center gap-1.5 rounded-lg py-2.5 font-inter text-sm font-bold transition ${
-                    isMsme ? "text-white" : "text-slate-500"
-                  }`}
-                >
-                  {isMsme && (
-                    <motion.span
-                      layoutId="segPill"
-                      transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                      className="absolute inset-0 -z-10 rounded-lg bg-gradient-to-br from-emerald-600 to-teal-700 shadow-md shadow-emerald-600/30"
-                    />
-                  )}
-                  <Factory className="h-4 w-4" />
-                  MSME
-                </button>
-              </div>
-            </motion.section>
-          </div>
-
-          {/* Right column — results */}
-          <div className="dashboard-shell flex flex-col gap-4">
-            {/* Total hero */}
-            <motion.div
-              variants={itemVariants}
-              className={`no-print relative overflow-hidden rounded-3xl bg-gradient-to-br ${totalGrad} px-5 py-5 text-center shadow-xl sm:py-6`}
-            >
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 opacity-20"
-                style={{
-                  backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
-                  backgroundSize: "22px 22px",
-                }}
-              />
-              <div
-                aria-hidden
-                className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-white/10 blur-3xl"
-              />
-              <p className="relative font-inter text-xs font-bold uppercase tracking-widest text-white/70">
-                Total Payable · कुल देय राशि
-              </p>
-              <div className="relative flex h-14 items-center justify-center sm:h-16">
-                <AnimatedAmount
-                  value={grandTotal}
-                  className="font-poppins whitespace-nowrap text-4xl font-extrabold tabular-nums text-white sm:text-5xl"
-                />
-              </div>
-              <p className="relative font-inter text-xs text-white/60">
-                ≈ Approximate · {category} · <a href="https://egras.rajasthan.gov.in/" style={{ textDecoration: "underline", color: "white" }}>Verify on the E-gras</a>
-              </p>
-            </motion.div>
-
-            {/* KPI stat row */}
-            <motion.div variants={itemVariants} className="no-print grid grid-cols-3 gap-2 sm:gap-3">
-              {kpis.map((k) => (
-                <div
-                  key={k.label}
-                  className={`${cardBase} flex flex-col gap-2 p-3 transition hover:shadow-lg sm:p-3.5`}
-                >
-                  <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br ${k.tint} text-white shadow-sm`}
-                  >
-                    <k.icon className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-inter text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                      {k.label}
-                    </p>
-                    <p className="font-poppins truncate text-sm font-extrabold tabular-nums text-slate-900 sm:text-base">
-                      {inr(k.value)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </motion.div>
-
-            {/* Receipt / breakdown (prints) */}
-            <motion.div variants={itemVariants} id="receipt" className={`${cardBase} p-4 sm:p-5`}>
-              {/* Print-only receipt header */}
-              <div className="mb-3 hidden print:block">
-                <div className="font-poppins text-lg font-extrabold text-slate-900">
-                  Rajasthan Mortgage &amp; Loan Duty
-                </div>
-                <div className="font-inter text-xs text-slate-500">
-                  Statutory Fee Receipt · {category} category · {today}
-                </div>
-              </div>
-
-              {/* Collapsible toggle */}
-              <button
-                onClick={() => setOpen(!open)}
-                className="-mx-1 flex w-full items-center justify-between gap-2 rounded-lg px-1 py-1 transition hover:bg-slate-50"
-              >
-                <div className="flex items-center gap-2">
-                  <Receipt className={`h-4 w-4 ${accentText}`} />
-                  <span className="font-poppins text-sm font-bold text-slate-800">
-                    Statutory Breakdown
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 font-inter text-xs font-bold text-emerald-700 ring-1 ring-emerald-200">
-                    <ShieldCheck className="h-3 w-3" />
-                    e-GRAS
-                  </span>
-                  <ChevronDown
-                    className={`no-print h-4 w-4 text-slate-400 transition-transform ${
-                      open ? "rotate-180" : ""
-                    }`}
-                  />
-                </div>
-              </button>
-
-              {/* Collapsible body (always shown when printing) */}
-              <div className={`breakdown-rows ${open ? "block" : "hidden"}`}>
-                <div className="mt-2 flex flex-wrap items-center justify-between gap-1 font-inter text-xs text-slate-400">
-                  <span>
-                    {category} category · Loan {inr(loanAmount)}
-                  </span>
-                  <span>{today}</span>
-                </div>
-                <div className="mb-1 font-inter text-xs text-slate-400">
-                  Basis: Mortgage deed without possession · e-GRAS
-                </div>
-
-                <LedgerRow
-                  icon={Stamp}
-                  label="Stamp Duty Payable"
-                  hindi="स्टाम्प ड्यूटी"
-                  value={stampDuty}
-                  capped={stampCapped}
-                />
-                <LedgerRow
-                  icon={HardHat}
-                  label={`Infrastructure Surcharge (${pct(SURCHARGE_RATES.infrastructure)}%)`}
-                  hindi="अवस्थापना अधिभार"
-                  value={infraSurcharge}
-                />
-                <LedgerRow
-                  icon={ShieldCheck}
-                  label={`Cow Protection Surcharge (${pct(SURCHARGE_RATES.cowProtection)}%)`}
-                  hindi="गौ संरक्षण अधिभार"
-                  value={cowSurcharge}
-                />
-                <LedgerRow
-                  icon={AlertTriangle}
-                  label={`Natural Calamity Surcharge (${pct(SURCHARGE_RATES.naturalCalamity)}%)`}
-                  hindi="प्राकृतिक आपदा अधिभार"
-                  value={calamitySurcharge}
-                />
-                <LedgerRow
-                  icon={FileSignature}
-                  label="Registration Fee"
-                  hindi="पंजीकरण शुल्क"
-                  value={regFee}
-                  capped={regCapped}
-                />
-                <LedgerRow
-                  icon={Globe}
-                  label="CSI Charges"
-                  hindi="CSI पोर्टल शुल्क"
-                  value={csi}
-                />
-              </div>
-
-              {/* TOTAL row — hidden on screen when collapsed, always printed */}
-              <div
-                className={`total-row mt-1 items-center justify-between gap-2 border-t-2 border-slate-900 py-3 ${
-                  open ? "flex" : "hidden"
-                }`}
-              >
-                <div>
-                  <span className="font-poppins text-base font-extrabold text-slate-900">
-                    TOTAL PAYABLE
-                  </span>
-                  <span className="block font-inter text-xs text-slate-400">
-                    कुल देय राशि
-                  </span>
-                </div>
-                <span
-                  className={`font-poppins text-xl font-extrabold tabular-nums ${accentText}`}
-                >
-                  {inr(grandTotal)}
-                </span>
-              </div>
-
-              {/* Approximate note directly under total — printed only */}
-              <p className="hidden font-inter text-xs italic text-slate-500 print:block">
-                ≈ Approximate amount. Subject to final valuation by the Sub-Registrar.
-              </p>
-            </motion.div>
-
-            {/* Actions */}
-            <motion.div variants={itemVariants} className="no-print grid grid-cols-3 gap-2">
-              <button
-                onClick={handleCopy}
-                className={`${actionBase} bg-gradient-to-r from-indigo-600 to-violet-700 text-white shadow-md shadow-indigo-600/25 hover:from-indigo-700 hover:to-violet-800`}
-              >
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                {copied ? "Copied" : "Copy"}
-              </button>
-              <button
-                onClick={handleShare}
-                className={`${actionBase} bg-indigo-50 text-indigo-700 hover:bg-indigo-100`}
-              >
-                <Share2 className="h-4 w-4" />
-                Share
-              </button>
-              <button
-                onClick={handlePrint}
-                className={`${actionBase} bg-slate-100 text-slate-700 hover:bg-slate-200`}
-              >
-                <Printer className="h-4 w-4" />
-                PDF
-              </button>
-            </motion.div>
-          </div>
-        </div>
-
-        {/* Disclaimer — shown on screen AND in the PDF */}
+          <span className="h-1.5 w-1.5 animate-pulse-ring rounded-full bg-emerald-500" />
+          Updated for 2026 · e-GRAS aligned
+        </motion.span>
+        <motion.h1
+          variants={itemVariants}
+          className="mt-5 font-display text-[2rem] font-extrabold leading-[1.1] tracking-tight text-ink sm:text-5xl lg:text-[3.4rem]"
+        >
+          Rajasthan mortgage stamp duty,{" "}
+          <span className="text-gradient">calculated instantly.</span>
+        </motion.h1>
         <motion.p
           variants={itemVariants}
-          className="px-1 text-center font-inter text-xs leading-relaxed text-slate-400"
+          className="mt-4 max-w-xl text-[15px] leading-relaxed text-muted sm:text-base"
         >
-          For guidance only. All figures are approximate and subject to final
-          valuation by the Sub-Registrar. Verify against the prevailing Rajasthan
-          Stamp &amp; Registration / e-GRAS schedule before relying on them.
+          Stamp duty, surcharges, registration fee and CSI charges for mortgage &amp; loan deeds —
+          free, private, and right in your browser.
         </motion.p>
+      </motion.div>
 
-        {/* SEO content — real, crawlable explainer + FAQ */}
+      {/* ---------------- Calculator grid ---------------- */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 items-start gap-5 print:block lg:grid-cols-2 lg:grid-rows-[auto_1fr] lg:gap-6"
+      >
+        {/* Inputs */}
         <motion.section
           variants={itemVariants}
-          aria-labelledby="faq-heading"
-          className={`no-print ${cardBase} p-4 sm:p-5`}
+          aria-label="Loan details"
+          className="no-print card print-plain flex flex-col gap-6 p-5 sm:p-6 lg:col-start-1 lg:row-start-1"
         >
-          <h2
-            id="faq-heading"
-            className="font-poppins text-sm font-bold text-slate-800"
-          >
-            Rajasthan Stamp Duty &amp; Registration — FAQs
-          </h2>
-          <p className="mt-1.5 font-inter text-xs leading-relaxed text-slate-500">
-            This calculator estimates statutory dues on a mortgage or loan
-            deed registered in Rajasthan — stamp duty, the Infrastructure,
-            Cow Protection &amp; Natural Calamity surcharges, registration
-            fee, and CSI portal charge — aligned with the Rajasthan e-GRAS
-            calculation logic.
-          </p>
-          <div className="mt-2">
-            <FaqAccordion items={FAQ_ITEMS} />
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor="loan-amount" className="text-sm font-semibold text-ink">
+                Loan amount <span className="font-normal text-muted">· ऋण राशि</span>
+              </label>
+              <AnimatePresence mode="popLayout" initial={false}>
+                {words && (
+                  <motion.span
+                    key={words}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.18 }}
+                    className="rounded-full bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent-ink"
+                  >
+                    ₹ {words}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <div className="relative mt-3 flex items-center rounded-2xl border border-line bg-surface-2 px-4 py-3.5 transition-all duration-300 focus-within:border-accent/60 focus-within:bg-surface focus-within:shadow-[0_0_0_4px_var(--accent-soft)]">
+              <span className="mr-2 font-display text-2xl font-semibold text-muted sm:text-3xl">₹</span>
+              <input
+                id="loan-amount"
+                value={grouped(raw)}
+                onChange={onChange}
+                inputMode="numeric"
+                autoComplete="off"
+                type="text"
+                placeholder="Enter amount"
+                className="w-full bg-transparent pr-10 font-display text-2xl font-bold tabular-nums tracking-tight text-ink outline-none placeholder:font-semibold placeholder:text-muted/50 sm:text-3xl"
+              />
+              <AnimatePresence>
+                {raw && (
+                  <motion.button
+                    type="button"
+                    initial={{ scale: 0, rotate: -90 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    exit={{ scale: 0, rotate: 90 }}
+                    transition={spring}
+                    onClick={() => setRaw("")}
+                    aria-label="Clear amount"
+                    className="absolute right-3 flex h-8 w-8 items-center justify-center rounded-full bg-surface-3 text-ink-2 transition-colors hover:bg-red-500/15 hover:text-red-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </motion.button>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Slider */}
+            <div className="mt-5">
+              <input
+                type="range"
+                min={0}
+                max={SLIDER_STEPS}
+                step={1}
+                value={sliderPos}
+                onChange={(e) => setRaw(String(sliderToAmount(Number(e.target.value))))}
+                aria-label="Loan amount slider"
+                aria-valuetext={loanAmount ? inr(loanAmount) : "No amount"}
+                className="range"
+                style={
+                  {
+                    "--fill": `${(sliderPos / SLIDER_STEPS) * 100}%`,
+                    "--range-color": isMsme ? "#10b981" : "var(--accent)",
+                  } as React.CSSProperties
+                }
+              />
+              <div className="mt-1 flex justify-between px-0.5 text-[10px] font-medium tabular-nums text-muted">
+                {SLIDER_TICKS.map((t) => (
+                  <span key={t}>₹{t}</span>
+                ))}
+              </div>
+            </div>
+
+            {/* Presets */}
+            <div className="mt-4 flex flex-wrap gap-2">
+              {PRESETS.map((p) => {
+                const active = raw === p.v;
+                return (
+                  <motion.button
+                    type="button"
+                    key={p.v}
+                    whileTap={{ scale: 0.94 }}
+                    onClick={() => setRaw(p.v)}
+                    className={`relative rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                      active
+                        ? "border-transparent text-white"
+                        : "border-line bg-surface text-ink-2 hover:border-line-strong hover:text-ink"
+                    }`}
+                  >
+                    {active && (
+                      <motion.span
+                        layoutId="preset-pill"
+                        transition={spring}
+                        className={`absolute inset-0 rounded-full ${
+                          isMsme
+                            ? "bg-gradient-to-b from-emerald-500 to-emerald-700"
+                            : "bg-gradient-to-b from-brand-500 to-brand-700"
+                        }`}
+                      />
+                    )}
+                    <span className="relative">{p.label}</span>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Category */}
+          <div>
+            <p id="category-label" className="text-sm font-semibold text-ink">
+              Borrower category
+            </p>
+            <div
+              role="radiogroup"
+              aria-labelledby="category-label"
+              className="mt-3 grid grid-cols-2 gap-2 rounded-2xl bg-surface-2 p-1.5"
+            >
+              {CATEGORIES.map((c) => {
+                const active = category === c.id;
+                const msme = c.id === "MSME";
+                return (
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    key={c.id}
+                    onClick={() => setCategory(c.id)}
+                    className="relative flex items-center gap-3 rounded-xl px-3 py-3 text-left"
+                  >
+                    {active && (
+                      <motion.span
+                        layoutId="category-pill"
+                        transition={spring}
+                        className="absolute inset-0 rounded-xl border border-line bg-surface shadow-[0_4px_14px_-6px_hsl(var(--shadow-color)/0.3)]"
+                      />
+                    )}
+                    <span
+                      className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors duration-300 ${
+                        active
+                          ? msme
+                            ? "bg-gradient-to-br from-emerald-500 to-teal-700 text-white"
+                            : "bg-gradient-to-br from-brand-500 to-brand-800 text-white"
+                          : "bg-surface-3 text-muted"
+                      }`}
+                    >
+                      <c.icon className="h-4 w-4" />
+                    </span>
+                    <span className="relative min-w-0">
+                      <span
+                        className={`block text-sm font-bold transition-colors ${active ? "text-ink" : "text-ink-2"}`}
+                      >
+                        {c.title}
+                      </span>
+                      <span className="block text-[11px] leading-snug text-muted">{c.hint}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <AnimatePresence initial={false}>
+              {isMsme && (
+                <motion.p
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease }}
+                  className="overflow-hidden text-xs leading-relaxed text-muted"
+                >
+                  <span className="mt-2.5 block">
+                    Requires a valid Udyam/MSME registration in the borrowing enterprise&apos;s name.
+                  </span>
+                </motion.p>
+              )}
+            </AnimatePresence>
           </div>
         </motion.section>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-        />
 
-        {/* Footer */}
-        <motion.footer
+        {/* Results */}
+        <div className="flex flex-col gap-5 print:block lg:col-start-2 lg:row-span-2 lg:row-start-1">
+          {/* Total hero */}
+          <motion.div
+            ref={totalRef}
+            variants={itemVariants}
+            className="no-print print-plain relative overflow-hidden rounded-3xl p-6 text-white shadow-[0_24px_48px_-20px_rgb(17_29_56/0.55)] sm:p-7"
+          >
+            <motion.div
+              aria-hidden
+              className="absolute inset-0 bg-gradient-to-br from-brand-500 via-brand-800 to-brand-950"
+              animate={{ opacity: isMsme ? 0 : 1 }}
+              transition={{ duration: 0.5 }}
+            />
+            <motion.div
+              aria-hidden
+              className="absolute inset-0 bg-gradient-to-br from-emerald-500 via-teal-800 to-slate-950"
+              initial={false}
+              animate={{ opacity: isMsme ? 1 : 0 }}
+              transition={{ duration: 0.5 }}
+            />
+            <div
+              aria-hidden
+              className="absolute inset-0 opacity-[0.14]"
+              style={{
+                backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+                backgroundSize: "20px 20px",
+                maskImage: "linear-gradient(to bottom left, black, transparent 70%)",
+                WebkitMaskImage: "linear-gradient(to bottom left, black, transparent 70%)",
+              }}
+            />
+            <div aria-hidden className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/15 blur-3xl" />
+            <motion.span
+              key={d.grandTotal}
+              aria-hidden
+              initial={{ x: "-120%" }}
+              animate={{ x: "420%" }}
+              transition={{ duration: 1.1, ease }}
+              className="pointer-events-none absolute inset-y-0 left-0 w-1/4 -skew-x-12 bg-gradient-to-r from-transparent via-white/15 to-transparent"
+            />
+
+            <div className="relative">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
+                  Total payable · कुल देय
+                </p>
+                <AnimatePresence mode="popLayout" initial={false}>
+                  <motion.span
+                    key={category}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    transition={spring}
+                    className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold ring-1 ring-white/20 backdrop-blur"
+                  >
+                    {isMsme ? <Factory className="h-3 w-3" /> : <Building2 className="h-3 w-3" />}
+                    {category}
+                  </motion.span>
+                </AnimatePresence>
+              </div>
+
+              <AnimatedAmount
+                value={d.grandTotal}
+                className="mt-3 font-display text-[2.75rem] font-extrabold leading-none tracking-tight tabular-nums sm:text-6xl"
+              />
+
+              <p className="mt-3 text-sm text-white/70">
+                {loanAmount ? (
+                  <>
+                    on a loan of <span className="font-semibold text-white">{inr(loanAmount)}</span>
+                  </>
+                ) : (
+                  "Enter a loan amount to see your estimate"
+                )}
+              </p>
+
+              <AnimatePresence initial={false}>
+                {msmeSavings > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.35, ease }}
+                    className="overflow-hidden"
+                  >
+                    <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-emerald-700 shadow-lg">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      You save {inr(msmeSavings)} vs Standard
+                    </span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-white/15 pt-4 text-xs text-white/65">
+                <span>≈ Approximate estimate</span>
+                <a
+                  href="https://egras.rajasthan.gov.in/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group inline-flex items-center gap-1 font-semibold text-white transition-opacity hover:opacity-90"
+                >
+                  Verify on e-GRAS
+                  <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                </a>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Composition */}
+          <motion.div variants={itemVariants} className="no-print card print-plain p-5 sm:p-6">
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <p className="font-display text-sm font-bold text-ink">Where the money goes</p>
+              <span className="text-xs text-muted">Hover to inspect</span>
+            </div>
+            <CompositionBar parts={parts} total={d.grandTotal} />
+          </motion.div>
+
+          {/* Receipt / breakdown (prints) */}
+          <motion.div variants={itemVariants} id="receipt" className="card print-plain p-5 sm:p-6">
+            <div className="mb-4 hidden print:block">
+              <div className="font-display text-lg font-extrabold text-ink">
+                Rajasthan Mortgage &amp; Loan Duty
+              </div>
+              <div className="text-xs text-muted">
+                Statutory Fee Receipt · {category} category · {today}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setOpen(!open)}
+              aria-expanded={open}
+              aria-controls="breakdown-body"
+              className="-m-2 flex w-[calc(100%+1rem)] items-center justify-between gap-2 rounded-xl p-2 transition-colors hover:bg-surface-2"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-soft text-accent">
+                  <Receipt className="h-4 w-4" />
+                </span>
+                <span className="font-display text-sm font-bold text-ink">Statutory breakdown</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-500/25 dark:text-emerald-300 print:text-emerald-700">
+                  <ShieldCheck className="h-3 w-3" />
+                  e-GRAS
+                </span>
+                <motion.span
+                  animate={{ rotate: open ? 180 : 0 }}
+                  transition={spring}
+                  className="no-print flex text-muted"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </motion.span>
+              </div>
+            </button>
+
+            <div id="breakdown-body" className="collapsible" data-open={open}>
+              <div>
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-1 rounded-xl bg-surface-2 px-3 py-2 text-xs text-muted">
+                  <span>
+                    {category} · Loan {inr(loanAmount)}
+                  </span>
+                  <span>Mortgage deed without possession · {today}</span>
+                </div>
+
+                <div className="mt-1">
+                  <LedgerRow
+                    icon={Stamp}
+                    label="Stamp duty payable"
+                    hindi="स्टाम्प ड्यूटी"
+                    value={d.stampDuty}
+                    capped={d.stampCapped}
+                    swatch="var(--viz-1)"
+                  />
+                  <LedgerRow
+                    icon={HardHat}
+                    label={`Infrastructure surcharge (${pct(SURCHARGE_RATES.infrastructure)}%)`}
+                    hindi="अवस्थापना अधिभार"
+                    value={d.infraSurcharge}
+                    swatch="var(--viz-2)"
+                  />
+                  <LedgerRow
+                    icon={ShieldCheck}
+                    label={`Cow protection surcharge (${pct(SURCHARGE_RATES.cowProtection)}%)`}
+                    hindi="गौ संरक्षण अधिभार"
+                    value={d.cowSurcharge}
+                    swatch="var(--viz-2)"
+                  />
+                  <LedgerRow
+                    icon={AlertTriangle}
+                    label={`Natural calamity surcharge (${pct(SURCHARGE_RATES.naturalCalamity)}%)`}
+                    hindi="प्राकृतिक आपदा अधिभार"
+                    value={d.calamitySurcharge}
+                    swatch="var(--viz-2)"
+                  />
+                  <LedgerRow
+                    icon={FileSignature}
+                    label="Registration fee"
+                    hindi="पंजीकरण शुल्क"
+                    value={d.regFee}
+                    capped={d.regCapped}
+                    swatch="var(--viz-3)"
+                  />
+                  <LedgerRow
+                    icon={Globe}
+                    label="CSI charges"
+                    hindi="CSI पोर्टल शुल्क"
+                    value={d.csi}
+                    swatch="var(--viz-4)"
+                  />
+                </div>
+
+                <div className="mt-1 flex items-center justify-between gap-2 border-t-2 border-ink pt-3">
+                  <div>
+                    <span className="font-display text-base font-extrabold text-ink">Total payable</span>
+                    <span className="block text-xs text-muted">कुल देय राशि</span>
+                  </div>
+                  <span
+                    className={`font-display text-xl font-extrabold tabular-nums ${
+                      isMsme ? "text-emerald-600 dark:text-emerald-400" : "text-accent"
+                    }`}
+                  >
+                    {inr(d.grandTotal)}
+                  </span>
+                </div>
+
+                <p className="mt-3 hidden text-xs italic text-muted print:block">
+                  ≈ Approximate amount. Subject to final valuation by the Sub-Registrar.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Actions */}
+          <motion.div variants={itemVariants} className="no-print grid grid-cols-3 gap-2.5">
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.95 }}
+              onClick={handleCopy}
+              className={`relative flex items-center justify-center gap-2 overflow-hidden rounded-2xl py-3.5 text-sm font-semibold text-white shadow-[0_10px_24px_-10px_rgb(31_67_133/0.8)] transition hover:brightness-110 ${
+                copied
+                  ? "bg-gradient-to-b from-emerald-500 to-emerald-700"
+                  : "bg-gradient-to-b from-brand-500 to-brand-700"
+              }`}
+            >
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.span
+                  key={copied ? "c" : "n"}
+                  initial={{ y: 16, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -16, opacity: 0 }}
+                  transition={spring}
+                  className="flex items-center gap-2"
+                >
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  {copied ? "Copied" : "Copy"}
+                </motion.span>
+              </AnimatePresence>
+            </motion.button>
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.95 }}
+              onClick={handleShare}
+              className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-surface py-3.5 text-sm font-semibold text-ink transition-colors hover:bg-surface-2"
+            >
+              <Share2 className="h-4 w-4" />
+              Share
+            </motion.button>
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.95 }}
+              onClick={handlePrint}
+              className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-surface py-3.5 text-sm font-semibold text-ink transition-colors hover:bg-surface-2"
+            >
+              <Printer className="h-4 w-4" />
+              PDF
+            </motion.button>
+          </motion.div>
+        </div>
+
+        {/* Applied rates (left column on desktop, after results on mobile) */}
+        <motion.section
           variants={itemVariants}
-          className="px-1 pb-1 text-center font-inter text-xs text-slate-400"
+          aria-label="Applied rates"
+          className="no-print card print-plain p-5 sm:p-6 lg:col-start-1 lg:row-start-2"
         >
+          <div className="flex items-center gap-2">
+            <BadgePercent className="h-4 w-4 text-accent" />
+            <p className="font-display text-sm font-bold text-ink">Rates applied</p>
+            <span className="ml-auto text-xs text-muted">{category}</span>
+          </div>
+          <dl className="mt-4 grid grid-cols-2 gap-2.5">
+            {appliedRates.map((r) => (
+              <div key={r.label} className="rounded-2xl bg-surface-2 px-3.5 py-3">
+                <dt className="text-xs text-muted">{r.label}</dt>
+                <dd className="mt-0.5">
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    <motion.span
+                      key={r.value}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.2 }}
+                      className="block font-display text-lg font-bold tabular-nums text-ink"
+                    >
+                      {r.value}
+                    </motion.span>
+                  </AnimatePresence>
+                  <span className="block text-[11px] text-muted">{r.note}</span>
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </motion.section>
+      </motion.div>
+
+      {/* Disclaimer — shown on screen AND in the PDF */}
+      <p className="mx-auto mt-6 max-w-3xl px-1 text-center text-xs leading-relaxed text-muted">
+        For guidance only. All figures are approximate and subject to final valuation by the
+        Sub-Registrar. Verify against the prevailing Rajasthan Stamp &amp; Registration / e-GRAS
+        schedule before relying on them.
+      </p>
+
+      {/* ---------------- How it's calculated ---------------- */}
+      <section aria-labelledby="how-heading" className="no-print mt-20 sm:mt-24">
+        <Reveal className="mx-auto max-w-2xl text-center">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">How it works</p>
+          <h2
+            id="how-heading"
+            className="mt-3 font-display text-2xl font-extrabold tracking-tight text-ink sm:text-4xl"
+          >
+            Three charges, one total
+          </h2>
+          <p className="mt-3 text-[15px] leading-relaxed text-muted">
+            Every figure follows the Rajasthan statutory schedule for a mortgage deed without
+            possession — the same logic e-GRAS uses.
+          </p>
+        </Reveal>
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
+          {steps.map((s, i) => (
+            <Reveal key={s.title} delay={i * 0.08} className="h-full">
+              <div className="card card-hover group relative h-full overflow-hidden p-6">
+                <span
+                  aria-hidden
+                  className="absolute right-5 top-3 font-display text-6xl font-extrabold leading-none text-ink/[0.06] transition-transform duration-500 group-hover:-translate-y-1 group-hover:scale-110"
+                >
+                  {i + 1}
+                </span>
+                <span
+                  className="relative flex h-11 w-11 items-center justify-center rounded-2xl text-white shadow-md transition-transform duration-500 group-hover:-rotate-6 group-hover:scale-110"
+                  style={{ background: s.color }}
+                >
+                  <s.icon className="h-5 w-5" />
+                </span>
+                <h3 className="relative mt-5 font-display text-lg font-bold text-ink">{s.title}</h3>
+                <p className="relative mt-2 text-sm leading-relaxed text-muted">{s.body}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      {/* ---------------- FAQ ---------------- */}
+      <section
+        aria-labelledby="faq-heading"
+        className="no-print mt-20 grid gap-8 sm:mt-24 lg:grid-cols-[1fr_1.6fr] lg:gap-12"
+      >
+        <Reveal className="lg:sticky lg:top-28 lg:self-start">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">FAQ</p>
+          <h2
+            id="faq-heading"
+            className="mt-3 font-display text-2xl font-extrabold tracking-tight text-ink sm:text-4xl"
+          >
+            Rajasthan stamp duty &amp; registration, answered
+          </h2>
+          <p className="mt-3 text-[15px] leading-relaxed text-muted">
+            This calculator estimates statutory dues on a mortgage or loan deed registered in
+            Rajasthan — stamp duty, the Infrastructure, Cow Protection &amp; Natural Calamity
+            surcharges, registration fee, and CSI portal charge.
+          </p>
           <Link
             to="/blog"
-            className="font-semibold text-indigo-600 underline decoration-indigo-200 underline-offset-2 transition hover:text-indigo-700"
+            className="group mt-6 flex items-center gap-4 rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-line-strong hover:bg-surface-2"
           >
-            Read our blog
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
+              <BookOpen className="h-5 w-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-ink">Read the guides</span>
+              <span className="block text-xs text-muted">MSME concession, e-GRAS payment, documents…</span>
+            </span>
+            <ArrowRight className="h-4 w-4 text-muted transition-transform duration-300 group-hover:translate-x-1 group-hover:text-ink" />
           </Link>
-          <div className="mt-1.5">
-            <SiteFooter />
-          </div>
-        </motion.footer>
-      </motion.div>
+        </Reveal>
+        <Reveal delay={0.08}>
+          <FaqAccordion items={FAQ_ITEMS} />
+        </Reveal>
+      </section>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+
+      {/* Trust strip */}
+      <Reveal className="no-print mt-16">
+        <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs font-medium text-muted">
+          <span className="inline-flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-emerald-500" /> Verified against an e-GRAS receipt
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <Landmark className="h-4 w-4 text-accent" /> Rajasthan statutory schedule 2026
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-amber-500" /> Free · no sign-up · works offline
+          </span>
+        </div>
+      </Reveal>
+
+      {/* ---------------- Mobile floating total ---------------- */}
+      <AnimatePresence>
+        {!totalInView && loanAmount > 0 && (
+          <motion.div
+            initial={{ y: 96, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 96, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 380, damping: 32 }}
+            className="no-print fixed inset-x-3 bottom-3 z-40 lg:hidden"
+            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+          >
+            <button
+              type="button"
+              onClick={() => totalRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
+              className="glass flex w-full items-center justify-between gap-3 rounded-2xl border border-line-strong px-4 py-3 text-left shadow-[0_18px_40px_-12px_hsl(var(--shadow-color)/0.45)]"
+            >
+              <div className="min-w-0">
+                <p className="text-[11px] font-medium text-muted">Total payable · {category}</p>
+                <AnimatedAmount
+                  value={d.grandTotal}
+                  className="font-display text-xl font-extrabold tabular-nums text-ink"
+                />
+              </div>
+              <span
+                className={`flex shrink-0 items-center gap-1 rounded-full px-3 py-2 text-xs font-semibold text-white ${
+                  isMsme ? "bg-emerald-600" : "bg-brand-600"
+                }`}
+              >
+                <Receipt className="h-3.5 w-3.5" /> Details
+              </span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

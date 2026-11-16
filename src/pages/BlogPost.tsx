@@ -1,24 +1,30 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { motion, useScroll, useSpring } from "motion/react";
+import { AnimatePresence, motion, useScroll, useSpring } from "motion/react";
 import {
   ArrowLeft,
   ArrowRight,
   Calculator as CalculatorIcon,
-  FileText,
-  Copy,
   Check,
+  ChevronDown,
+  Clock,
+  Copy,
+  FileText,
+  HelpCircle,
+  ListTree,
   Share2,
 } from "lucide-react";
 import { POSTS, getPostBySlug } from "../data/posts";
 import { MarkdownArticle } from "../components/MarkdownArticle";
 import { FaqAccordion } from "../components/FaqAccordion";
 import { TableOfContents } from "../components/TableOfContents";
-import { SiteFooter } from "../components/SiteFooter";
+import { PostCover } from "../components/PostCover";
+import { Reveal } from "../components/Reveal";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
 import { splitMarkdownSections } from "../lib/markdown";
 
 const SITE_URL = "https://mortgage-duty-app.vercel.app";
+const ease = [0.22, 1, 0.36, 1] as const;
 
 function slugify(title: string) {
   return title
@@ -47,7 +53,7 @@ export default function BlogPost() {
       post
         ? [
             ...sections.map((s) => ({ id: slugify(s.title), title: s.title })),
-            { id: "faqs", title: "Frequently Asked Questions" },
+            { id: "faqs", title: "Frequently asked questions" },
           ]
         : [],
     [post, sections]
@@ -58,6 +64,7 @@ export default function BlogPost() {
   );
 
   const [copied, setCopied] = useState(false);
+  const [mobileTocOpen, setMobileTocOpen] = useState(false);
 
   const handleCopyLink = async () => {
     try {
@@ -84,24 +91,23 @@ export default function BlogPost() {
 
   if (!post) {
     return (
-      <div className="font-inter relative flex min-h-screen w-full flex-col items-center justify-center gap-4 overflow-hidden bg-slate-50 px-4 text-center">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-indigo-300/25 blur-3xl"
-        />
-        <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-700 text-white shadow-lg shadow-indigo-600/25">
+      <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center gap-4 px-4 text-center">
+        <motion.div
+          initial={{ scale: 0.6, rotate: -12, opacity: 0 }}
+          animate={{ scale: 1, rotate: 0, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 260, damping: 18 }}
+          className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-800 text-white shadow-lg"
+        >
           <FileText className="h-7 w-7" />
-        </div>
-        <p className="font-poppins relative text-xl font-extrabold text-slate-900">
-          Article not found
-        </p>
-        <p className="relative max-w-xs font-inter text-sm text-slate-500">
-          This guide may have moved or doesn&apos;t exist. Head back to the blog to
-          see what&apos;s available.
+        </motion.div>
+        <p className="font-display text-2xl font-extrabold text-ink">Article not found</p>
+        <p className="text-sm text-muted">
+          This guide may have moved or doesn&apos;t exist. Head back to the blog to see what&apos;s
+          available.
         </p>
         <Link
           to="/blog"
-          className="relative inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-4 py-2.5 font-inter text-sm font-semibold text-white shadow-md shadow-indigo-600/25 transition hover:bg-indigo-700 active:scale-95"
+          className="inline-flex items-center gap-2 rounded-full bg-gradient-to-b from-brand-500 to-brand-700 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:brightness-110"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to blog
@@ -143,247 +149,275 @@ export default function BlogPost() {
     ],
   };
 
+  const shareButtons = (
+    <>
+      <motion.button
+        type="button"
+        whileTap={{ scale: 0.95 }}
+        onClick={handleCopyLink}
+        className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-line bg-surface py-2.5 text-xs font-semibold text-ink transition-colors hover:bg-surface-2"
+      >
+        <AnimatePresence mode="popLayout" initial={false}>
+          <motion.span
+            key={copied ? "c" : "n"}
+            initial={{ y: 12, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -12, opacity: 0 }}
+            className="flex items-center gap-2"
+          >
+            {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? "Copied" : "Copy link"}
+          </motion.span>
+        </AnimatePresence>
+      </motion.button>
+      <motion.button
+        type="button"
+        whileTap={{ scale: 0.95 }}
+        onClick={handleShare}
+        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-brand-500 to-brand-700 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:brightness-110"
+      >
+        <Share2 className="h-3.5 w-3.5" />
+        Share
+      </motion.button>
+    </>
+  );
+
   return (
-    <div className="font-inter min-h-screen w-full bg-slate-50">
-      {/* Reading progress bar */}
+    <div className="w-full">
+      {/* Reading progress */}
       <motion.div
         aria-hidden
         style={{ scaleX: progress }}
-        className="no-print fixed inset-x-0 top-0 z-50 h-1 origin-left bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500"
+        className="no-print fixed inset-x-0 top-0 z-50 h-[3px] origin-left bg-gradient-to-r from-brand-400 via-sky-400 to-emerald-400"
       />
 
-      {/* Hero */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-700 via-violet-800 to-slate-900 px-4 pb-8 pt-6 sm:px-6 sm:pb-10 lg:px-10">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-20"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
-            backgroundSize: "24px 24px",
-          }}
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-violet-400/30 blur-3xl"
-        />
-
-        <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-5">
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              to="/blog"
-              className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 font-inter text-xs font-semibold text-white/90 backdrop-blur transition hover:bg-white/20 active:scale-95"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Back to blog
-            </Link>
-          </div>
-
-          <nav aria-label="Breadcrumb" className="font-inter text-xs text-white/50">
-            <Link to="/" className="transition hover:text-white/80">
-              Home
-            </Link>
-            <span className="mx-1.5">/</span>
-            <Link to="/blog" className="transition hover:text-white/80">
+      {/* ---------------- Header ---------------- */}
+      <header className="mx-auto w-full max-w-6xl px-4 pt-8 sm:px-6 sm:pt-12 lg:px-8">
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07 } } }}
+          className="max-w-3xl"
+        >
+          <motion.nav
+            variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
+            aria-label="Breadcrumb"
+            className="flex items-center gap-1.5 text-xs text-muted"
+          >
+            <Link to="/blog" className="group inline-flex items-center gap-1 font-semibold text-ink-2 hover:text-ink">
+              <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
               Blog
             </Link>
-            <span className="mx-1.5">/</span>
-            <span className="text-white/70">{post.meta.tag}</span>
-          </nav>
+            <span className="opacity-50">/</span>
+            <span>{post.meta.tag}</span>
+          </motion.nav>
 
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 380, damping: 30 }}
-            className="flex max-w-3xl flex-col gap-3"
+          <motion.h1
+            variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.6, ease } } }}
+            className="mt-5 font-display text-3xl font-extrabold leading-[1.12] tracking-tight text-ink sm:text-4xl lg:text-5xl"
           >
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-white/15 px-2.5 py-1 font-inter text-[11px] font-bold text-white backdrop-blur">
-                {post.meta.tag}
+            {post.meta.title}
+          </motion.h1>
+          <motion.p
+            variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.6, ease } } }}
+            className="mt-4 text-base leading-relaxed text-muted sm:text-lg"
+          >
+            {post.meta.description}
+          </motion.p>
+          <motion.div
+            variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.6, ease } } }}
+            className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted"
+          >
+            <span className="inline-flex items-center gap-2">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-800 text-[10px] font-bold text-white">
+                MG
               </span>
-              <time dateTime={post.meta.date} className="font-inter text-xs text-white/70">
-                {post.meta.dateLabel}
-              </time>
-              <span className="font-inter text-xs text-white/40">·</span>
-              <span className="font-inter text-xs text-white/70">{post.meta.readingTime}</span>
-            </div>
-            <h1 className="font-poppins text-2xl font-extrabold leading-tight text-white sm:text-3xl lg:text-4xl">
-              {post.meta.title}
-            </h1>
-            <p className="max-w-xl font-inter text-sm leading-relaxed text-white/70">
-              {post.meta.description}
-            </p>
+              <span className="font-semibold text-ink-2">MG Labs</span>
+            </span>
+            <span className="opacity-40">·</span>
+            <time dateTime={post.meta.date}>{post.meta.dateLabel}</time>
+            <span className="opacity-40">·</span>
+            <span className="inline-flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5" /> {post.meta.readingTime}
+            </span>
           </motion.div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 24, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.7, ease, delay: 0.2 }}
+          className="no-print mt-8"
+        >
+          <PostCover tag={post.meta.tag} size="lg" className="h-24 rounded-3xl sm:h-44" />
+        </motion.div>
+      </header>
+
+      {/* Mobile: share + collapsible contents */}
+      <div className="no-print mx-auto mt-5 flex w-full max-w-6xl flex-col gap-3 px-4 sm:px-6 lg:hidden">
+        <div className="flex gap-2">{shareButtons}</div>
+        <div className="card overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setMobileTocOpen((o) => !o)}
+            aria-expanded={mobileTocOpen}
+            className="flex w-full items-center justify-between gap-2 px-4 py-3"
+          >
+            <span className="flex items-center gap-2 text-sm font-semibold text-ink">
+              <ListTree className="h-4 w-4 text-accent" /> On this page
+            </span>
+            <motion.span animate={{ rotate: mobileTocOpen ? 180 : 0 }} className="flex text-muted">
+              <ChevronDown className="h-4 w-4" />
+            </motion.span>
+          </button>
+          <div className="collapsible" data-open={mobileTocOpen}>
+            <div>
+              <ol className="space-y-1 border-t border-line px-4 py-3">
+                {tocItems.map((t, i) => (
+                  <li key={t.id}>
+                    <a
+                      href={`#${t.id}`}
+                      onClick={() => setMobileTocOpen(false)}
+                      className="flex gap-3 rounded-lg py-1.5 text-sm text-ink-2 hover:text-ink"
+                    >
+                      <span className="w-5 shrink-0 text-right text-xs font-semibold tabular-nums text-muted">
+                        {i + 1}
+                      </span>
+                      {t.title}
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Mobile-only share row (desktop uses the sticky sidebar) */}
-      <div className="no-print mx-auto flex w-full max-w-6xl gap-2 px-4 pt-4 sm:px-6 lg:hidden">
-        <button
-          onClick={handleCopyLink}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-white py-2.5 font-inter text-xs font-bold text-slate-700 shadow-sm ring-1 ring-slate-200/70 transition active:scale-95"
-        >
-          {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-          {copied ? "Copied" : "Copy link"}
-        </button>
-        <button
-          onClick={handleShare}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-indigo-50 py-2.5 font-inter text-xs font-bold text-indigo-700 shadow-sm ring-1 ring-indigo-100 transition active:scale-95"
-        >
-          <Share2 className="h-3.5 w-3.5" />
-          Share
-        </button>
-      </div>
-
-      {/* Content: article + sticky TOC sidebar */}
-      <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 px-4 pb-14 pt-6 sm:px-6 lg:grid-cols-[1fr_300px] lg:px-10 lg:pt-10">
-        {/* Article */}
-        <motion.article
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 380, damping: 30 }}
-          className="min-w-0 flex flex-col gap-5"
-        >
-          <div className="rounded-3xl bg-white p-6 shadow-lg ring-1 ring-slate-200/70 sm:p-8 lg:p-10">
+      {/* ---------------- Body ---------------- */}
+      <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 px-4 pt-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-10 lg:px-8 lg:pt-10">
+        <article className="flex min-w-0 flex-col gap-6">
+          <div className="card px-5 py-7 sm:px-9 sm:py-10 lg:px-12">
             {sections.map((section, i) => (
-              <div
+              <Reveal
                 key={section.title}
                 id={slugify(section.title)}
-                className={`scroll-mt-24 ${i === 0 ? "" : "mt-8 border-t border-slate-100 pt-8"}`}
+                y={14}
+                className={`scroll-mt-28 ${i === 0 ? "" : "mt-12 border-t border-line pt-12"}`}
               >
-                <h2 className="font-poppins text-xl font-extrabold text-slate-900 sm:text-2xl">
-                  {section.title}
+                <h2 className="flex items-start gap-3 font-display text-xl font-extrabold tracking-tight text-ink sm:text-2xl">
+                  <span className="mt-1 flex h-7 min-w-7 items-center justify-center rounded-lg bg-accent-soft px-1.5 text-xs font-bold tabular-nums text-accent">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <span>{section.title}</span>
                 </h2>
                 <MarkdownArticle markdown={section.content} />
-              </div>
+              </Reveal>
             ))}
           </div>
 
           {/* FAQ */}
-          <div
-            id="faqs"
-            aria-labelledby="post-faq-heading"
-            className="scroll-mt-24 rounded-3xl bg-white p-5 shadow-lg ring-1 ring-slate-200/70 sm:p-7"
-          >
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-indigo-600" />
-              <h2 id="post-faq-heading" className="font-poppins text-base font-bold text-slate-800">
-                Frequently Asked Questions
-              </h2>
-            </div>
-            <div className="mt-2">
+          <Reveal id="faqs" className="scroll-mt-28">
+            <section aria-labelledby="post-faq-heading" className="card p-5 sm:p-8">
+              <div className="mb-5 flex items-center gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-soft text-accent">
+                  <HelpCircle className="h-4 w-4" />
+                </span>
+                <h2 id="post-faq-heading" className="font-display text-xl font-extrabold tracking-tight text-ink">
+                  Frequently asked questions
+                </h2>
+              </div>
               <FaqAccordion items={post.faq} />
-            </div>
-          </div>
+            </section>
+          </Reveal>
 
           {/* CTA */}
-          <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 px-5 py-6 text-center shadow-xl">
-            <p className="font-poppins text-lg font-extrabold text-white">
-              Not sure how much mortgage duty is payable?
-            </p>
-            <p className="mx-auto mt-1.5 max-w-sm font-inter text-sm text-white/70">
-              Enter the loan amount, select the category, and get an instant
-              Rajasthan mortgage stamp duty and registration fee estimate.
-            </p>
-            <Link
-              to="/"
-              className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2.5 font-inter text-sm font-bold text-indigo-700 shadow-md transition hover:bg-indigo-50 active:scale-95"
-            >
-              <CalculatorIcon className="h-4 w-4" />
-              Calculate Your Mortgage Duty Now
-            </Link>
-          </div>
-
-          {/* Related guides */}
-          {relatedPosts.length > 0 && (
-            <div>
-              <h2 className="font-poppins text-base font-bold text-slate-800">
-                Related Guides
-              </h2>
-              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                {relatedPosts.map((related) => (
-                  <Link
-                    key={related.meta.slug}
-                    to={`/blog/${related.meta.slug}`}
-                    className="group block rounded-2xl bg-white p-4 shadow-lg ring-1 ring-slate-200/70 transition hover:ring-indigo-300"
-                  >
-                    <span className="rounded-full bg-indigo-100 px-2 py-0.5 font-inter text-[11px] font-bold text-indigo-700">
-                      {related.meta.tag}
-                    </span>
-                    <p className="font-poppins mt-2 text-sm font-bold leading-snug text-slate-900 group-hover:text-indigo-700">
-                      {related.meta.title}
-                    </p>
-                    <span className="mt-2 inline-flex items-center gap-1 font-inter text-xs font-bold text-indigo-700">
-                      Read article
-                      <ArrowRight className="h-3 w-3 transition group-hover:translate-x-0.5" />
-                    </span>
-                  </Link>
-                ))}
-              </div>
+          <Reveal className="no-print">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-500 via-brand-700 to-brand-950 px-6 py-9 text-center text-white shadow-[0_24px_48px_-24px_rgb(17_29_56/0.7)] sm:px-10">
+              <div aria-hidden className="absolute -left-10 -top-16 h-48 w-48 rounded-full bg-white/15 blur-3xl" />
+              <div aria-hidden className="absolute -bottom-20 right-0 h-48 w-48 rounded-full bg-sky-400/25 blur-3xl" />
+              <p className="relative font-display text-xl font-extrabold sm:text-2xl">
+                Not sure how much mortgage duty is payable?
+              </p>
+              <p className="relative mx-auto mt-2 max-w-md text-sm text-white/75">
+                Enter the loan amount, select the category, and get an instant Rajasthan mortgage
+                stamp duty and registration fee estimate.
+              </p>
+              <Link
+                to="/"
+                className="group relative mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-brand-800 shadow-lg transition hover:shadow-xl"
+              >
+                <CalculatorIcon className="h-4 w-4" />
+                Calculate your mortgage duty
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
             </div>
-          )}
+          </Reveal>
 
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
-          />
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-          />
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
-          />
-        </motion.article>
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+        </article>
 
         {/* Sidebar */}
         <motion.aside
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 380, damping: 30, delay: 0.08 }}
-          className="no-print hidden flex-col gap-4 lg:sticky lg:top-6 lg:flex lg:self-start"
+          initial={{ opacity: 0, x: 16 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, ease, delay: 0.25 }}
+          className="no-print hidden flex-col gap-4 lg:sticky lg:top-24 lg:flex lg:self-start"
         >
           <TableOfContents items={tocItems} watchKey={post.meta.slug} />
-
-          <div className="flex gap-2 rounded-2xl bg-white p-3 shadow-lg ring-1 ring-slate-200/70">
-            <button
-              onClick={handleCopyLink}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-slate-100 py-2.5 font-inter text-xs font-bold text-slate-700 transition hover:bg-slate-200 active:scale-95"
-            >
-              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-              {copied ? "Copied" : "Copy link"}
-            </button>
-            <button
-              onClick={handleShare}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-indigo-50 py-2.5 font-inter text-xs font-bold text-indigo-700 transition hover:bg-indigo-100 active:scale-95"
-            >
-              <Share2 className="h-3.5 w-3.5" />
-              Share
-            </button>
-          </div>
-
-          <div className="hidden overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-800 p-4 text-center shadow-xl lg:block">
-            <p className="font-poppins text-sm font-extrabold text-white">
-              Calculate your duty
-            </p>
-            <p className="mt-1 font-inter text-xs leading-relaxed text-white/70">
-              Free instant estimate for mortgage &amp; loan deeds.
-            </p>
-            <Link
-              to="/"
-              className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-2 font-inter text-xs font-bold text-indigo-700 shadow-md transition hover:bg-indigo-50 active:scale-95"
-            >
-              <CalculatorIcon className="h-3.5 w-3.5" />
-              Open Calculator
-            </Link>
-          </div>
+          <div className="card flex gap-2 p-3">{shareButtons}</div>
+          <Link
+            to="/"
+            className="card card-hover group flex items-center gap-3 p-4"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-800 text-white shadow">
+              <CalculatorIcon className="h-4 w-4" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-ink">Calculate your duty</span>
+              <span className="block text-xs text-muted">Free instant estimate</span>
+            </span>
+            <ArrowRight className="h-4 w-4 text-muted transition-transform group-hover:translate-x-1 group-hover:text-ink" />
+          </Link>
         </motion.aside>
       </div>
 
-      <footer className="mx-auto w-full max-w-6xl px-4 pb-8 text-center font-inter text-xs text-slate-400 sm:px-6 lg:px-10">
-        <SiteFooter />
-      </footer>
+      {/* ---------------- Related ---------------- */}
+      {relatedPosts.length > 0 && (
+        <section className="no-print mx-auto mt-16 w-full max-w-6xl px-4 sm:px-6 lg:px-8">
+          <Reveal className="flex items-end justify-between gap-4">
+            <h2 className="font-display text-2xl font-extrabold tracking-tight text-ink">Keep reading</h2>
+            <Link to="/blog" className="group inline-flex items-center gap-1 text-sm font-semibold text-accent">
+              All guides
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          </Reveal>
+          <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
+            {relatedPosts.map((related, i) => (
+              <Reveal key={related.meta.slug} delay={i * 0.08} className="h-full">
+                <Link
+                  to={`/blog/${related.meta.slug}`}
+                  className="card card-hover group flex h-full flex-col overflow-hidden"
+                >
+                  <PostCover tag={related.meta.tag} size="sm" className="h-24" />
+                  <div className="flex flex-1 flex-col p-5">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-accent">
+                      {related.meta.tag}
+                    </span>
+                    <p className="mt-1.5 font-display text-[15px] font-bold leading-snug text-ink transition-colors group-hover:text-accent">
+                      {related.meta.title}
+                    </p>
+                    <span className="mt-auto inline-flex items-center gap-1 pt-3 text-xs text-muted">
+                      <Clock className="h-3 w-3" /> {related.meta.readingTime}
+                    </span>
+                  </div>
+                </Link>
+              </Reveal>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
