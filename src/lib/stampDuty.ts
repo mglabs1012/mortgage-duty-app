@@ -19,6 +19,65 @@ export const STAMP_CAP = { standard: 1500000, msme: 1000000 };
 export const REG_RATE = 0.005;
 export const REG_CAP = 100000;
 
+export type DutyCategory = "Standard" | "MSME";
+
+export type DutyBreakdown = {
+  stampDuty: number;
+  stampCapped: boolean;
+  infraSurcharge: number;
+  cowSurcharge: number;
+  calamitySurcharge: number;
+  surchargeTotal: number;
+  regFee: number;
+  regCapped: boolean;
+  csi: number;
+  grandTotal: number;
+};
+
+/** Statutory engine (Rajasthan 2026, e-GRAS aligned). Pure — safe to call for comparisons. */
+export function computeDuty(loanAmount: number, category: DutyCategory): DutyBreakdown {
+  const isMsme = category === "MSME";
+  const stampRate = isMsme ? STAMP_RATE.msme : STAMP_RATE.standard;
+  const stampCap = isMsme ? STAMP_CAP.msme : STAMP_CAP.standard;
+  const rawStamp = loanAmount * stampRate;
+  const stampCapped = rawStamp > stampCap;
+  const stampDuty = Math.round(Math.min(rawStamp, stampCap));
+
+  const infraSurcharge = Math.round(stampDuty * SURCHARGE_RATES.infrastructure);
+  const cowSurcharge = Math.round(stampDuty * SURCHARGE_RATES.cowProtection);
+  const calamitySurcharge = Math.round(stampDuty * SURCHARGE_RATES.naturalCalamity);
+  const surchargeTotal = infraSurcharge + cowSurcharge + calamitySurcharge;
+
+  const rawReg = loanAmount * REG_RATE;
+  const regCapped = rawReg > REG_CAP;
+  const regFee = Math.round(Math.min(rawReg, REG_CAP));
+
+  const csi = loanAmount > CSI_MIN_LOAN ? CSI_CHARGE : 0;
+
+  return {
+    stampDuty,
+    stampCapped,
+    infraSurcharge,
+    cowSurcharge,
+    calamitySurcharge,
+    surchargeTotal,
+    regFee,
+    regCapped,
+    csi,
+    grandTotal: stampDuty + surchargeTotal + regFee + csi,
+  };
+}
+
+/** "25 Lakh", "1.25 Crore", "50 Thousand" — Indian-system words for an amount. */
+export function amountInWords(n: number): string {
+  if (!n) return "";
+  const fmt = (v: number) => Number(v.toFixed(2)).toString();
+  if (n >= 1e7) return `${fmt(n / 1e7)} Crore`;
+  if (n >= 1e5) return `${fmt(n / 1e5)} Lakh`;
+  if (n >= 1e3) return `${fmt(n / 1e3)} Thousand`;
+  return `${n}`;
+}
+
 export const inr = (n: number): string =>
   new Intl.NumberFormat("en-IN", {
     style: "currency",

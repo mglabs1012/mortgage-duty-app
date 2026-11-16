@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { List } from "lucide-react";
+import { motion } from "motion/react";
+import { ListTree } from "lucide-react";
 
 export type TocItem = { id: string; title: string };
 
@@ -31,36 +32,61 @@ export function TableOfContents({ items, watchKey }: { items: TocItem[]; watchKe
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [watchKey, items.length]);
 
+  const activeIndex = Math.max(
+    0,
+    items.findIndex((i) => i.id === activeId)
+  );
+  const progress = items.length > 1 ? activeIndex / (items.length - 1) : 0;
+
   return (
-    <nav
-      aria-label="Table of contents"
-      className="rounded-2xl bg-white p-4 shadow-lg ring-1 ring-slate-200/70"
-    >
-      <div className="flex items-center gap-2 px-1">
-        <List className="h-4 w-4 text-indigo-600" />
-        <p className="font-inter text-[11px] font-bold uppercase tracking-wide text-slate-400">
-          In this article
-        </p>
+    <nav aria-label="Table of contents" className="card p-4">
+      <div className="flex items-center justify-between gap-2 px-1">
+        <div className="flex items-center gap-2">
+          <ListTree className="h-4 w-4 text-accent" />
+          <p className="text-[11px] font-bold uppercase tracking-wider text-muted">On this page</p>
+        </div>
+        <span className="text-[11px] font-semibold tabular-nums text-muted">
+          {activeId ? activeIndex + 1 : 0}/{items.length}
+        </span>
       </div>
-      <ul className="mt-2 max-h-[50vh] space-y-0.5 overflow-y-auto border-l-2 border-slate-100 pl-0.5">
-        {items.map((item) => {
-          const isActive = activeId === item.id;
-          return (
-            <li key={item.id}>
-              <a
-                href={`#${item.id}`}
-                className={`-ml-0.5 block border-l-2 py-1.5 pl-3 font-inter text-xs leading-snug transition ${
-                  isActive
-                    ? "border-indigo-600 font-bold text-indigo-700"
-                    : "border-transparent font-medium text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                {item.title}
-              </a>
-            </li>
-          );
-        })}
-      </ul>
+      <div className="relative mt-3">
+        <span aria-hidden className="absolute bottom-1 left-[5px] top-1 w-px bg-line-strong" />
+        <motion.span
+          aria-hidden
+          className="absolute left-[5px] top-1 w-px origin-top bg-accent"
+          style={{ height: "calc(100% - 8px)" }}
+          animate={{ scaleY: activeId ? progress : 0 }}
+          transition={{ type: "spring", stiffness: 260, damping: 30 }}
+        />
+        <ul className="max-h-[55vh] space-y-0.5 overflow-y-auto">
+          {items.map((item, i) => {
+            const isActive = activeId === item.id;
+            const isPast = activeId !== "" && i < activeIndex;
+            return (
+              <li key={item.id}>
+                <a
+                  href={`#${item.id}`}
+                  className={`group relative flex items-start gap-3 rounded-lg py-1.5 pr-2 text-[13px] leading-snug transition-colors ${
+                    isActive ? "font-semibold text-ink" : "text-muted hover:text-ink"
+                  }`}
+                >
+                  <span
+                    aria-hidden
+                    className={`relative z-10 mt-[5px] h-[11px] w-[11px] shrink-0 rounded-full border-2 transition-all duration-300 ${
+                      isActive
+                        ? "scale-110 border-accent bg-accent shadow-[0_0_0_4px_var(--accent-soft)]"
+                        : isPast
+                          ? "border-accent bg-surface"
+                          : "border-line-strong bg-surface group-hover:border-ink-2"
+                    }`}
+                  />
+                  {item.title}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </nav>
   );
 }

@@ -23,8 +23,8 @@ export default defineConfig({
         short_name: "RJ Duty Calc",
         description:
           "Calculate mortgage & loan stamp duty, labour cess, and registration fees under the Rajasthan statutory schedule.",
-        theme_color: "#4338ca",
-        background_color: "#f8fafc",
+        theme_color: "#1f4385",
+        background_color: "#f5f7fb",
         display: "standalone",
         start_url: "/",
         // Lets navigator.getInstalledRelatedApps() self-detect this PWA
