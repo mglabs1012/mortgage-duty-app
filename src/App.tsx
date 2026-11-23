@@ -8,6 +8,7 @@ import { AmbientBackground } from "./components/AmbientBackground";
 
 const BlogIndex = lazy(() => import("./pages/BlogIndex"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
+const StampDutyPage = lazy(() => import("./stamp/StampDutyPage"));
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -69,6 +70,7 @@ export default function App() {
             <Suspense fallback={<PageFallback />}>
               <Routes location={location}>
                 <Route path="/" element={<Calculator />} />
+                <Route path="/stamp-duty" element={<StampDutyPage />} />
                 <Route path="/blog" element={<BlogIndex />} />
                 <Route path="/blog/:slug" element={<BlogPost />} />
                 <Route path="/updates" element={<Navigate to="/blog" replace />} />
