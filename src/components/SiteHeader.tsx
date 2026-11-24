@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { motion, useMotionValueEvent, useScroll } from "motion/react";
-import { BookOpen, Calculator } from "lucide-react";
+import { BookOpen, Calculator, Stamp } from "lucide-react";
 import { BrandMark } from "./BrandMark";
 import { ThemeToggle } from "./ThemeToggle";
 import { InstallAppButton } from "./InstallAppButton";
 
 const NAV = [
-  { to: "/", label: "Calculator", icon: Calculator, match: (p: string) => p === "/" },
+  { to: "/", label: "Mortgage", icon: Calculator, match: (p: string) => p === "/" },
+  { to: "/stamp-duty", label: "All Deeds", icon: Stamp, match: (p: string) => p.startsWith("/stamp-duty") },
   { to: "/blog", label: "Blog", icon: BookOpen, match: (p: string) => p.startsWith("/blog") },
 ];
 

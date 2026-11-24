@@ -34,7 +34,12 @@ export function SiteFooter() {
           <ul className="mt-4 space-y-2.5 text-sm">
             <li>
               <Link to="/" className="text-muted transition-colors hover:text-ink">
-                Stamp duty calculator
+                Mortgage duty calculator
+              </Link>
+            </li>
+            <li>
+              <Link to="/stamp-duty" className="text-muted transition-colors hover:text-ink">
+                All-deeds stamp duty &amp; fees
               </Link>
             </li>
             <li>
