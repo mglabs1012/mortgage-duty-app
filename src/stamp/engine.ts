@@ -2,6 +2,7 @@ import type { Base, DutyInputs, DutyResult, InputField, Instrument, Rule } from 
 import {
   COUNT_UNIT_LABEL,
   PARTY_CATEGORIES,
+  SITE_INSPECTION_FEE_DEFAULT,
   SURCHARGE,
   TELESCOPIC_BANDS,
   categoryRate,
@@ -378,8 +379,11 @@ export function computeDuty(ins: Instrument, i: DutyInputs): DutyResult {
   const rfBeforeRebate = Math.max(rf, round(rfOrigEval.amount));
 
   const csi = ins.csi;
-  const total = sd + s.total + rf + csi;
-  const totalBeforeRebate = sdBeforeRebate + sOrig.total + rfBeforeRebate + csi;
+  const inspection = ins.insp && value > 0 ? inspectionStatus(value) : null;
+  const inspectionFee =
+    inspection && inspection !== "Not required" ? Math.max(0, i.inspectionFee ?? SITE_INSPECTION_FEE_DEFAULT) : 0;
+  const total = sd + s.total + rf + csi + inspectionFee;
+  const totalBeforeRebate = sdBeforeRebate + sOrig.total + rfBeforeRebate + csi + inspectionFee;
 
   /* ---- conditions & warnings ---- */
   const conditions: string[] = [];
@@ -421,13 +425,14 @@ export function computeDuty(ins: Instrument, i: DutyInputs): DutyResult {
     rf,
     rfBeforeRebate,
     csi,
+    inspectionFee,
     total,
     totalBeforeRebate,
     sdWorking: sdEval.working,
     rfWorking: rfEval.working,
     conditions,
     warnings,
-    inspection: ins.insp && value > 0 ? inspectionStatus(value) : null,
+    inspection,
     categoryRate: catApplies ? categoryRate(i.category) : null,
   };
 }
@@ -446,4 +451,5 @@ export const EMPTY_INPUTS: DutyInputs = {
   sdPaid: 0,
   count: 1,
   category: "male",
+  inspectionFee: null,
 };

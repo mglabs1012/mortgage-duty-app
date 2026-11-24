@@ -21,6 +21,34 @@ test("mortgage without possession matches the verified e-GRAS receipt (Rs. 14,25
   assert.equal(r.total, 12363);
 });
 
+test("executed sale deed, SR Ajmer-II 17-11-2026: Rs. 12 lakh -> Rs. 1,09,260 (fee receipt)", () => {
+  // Evaluated (DLC) value Rs. 10,78,224 < consideration Rs. 12,00,000, male buyer.
+  const r = run("S2", { marketValue: 1078224, consideration: 1200000, category: "male" });
+  assert.equal(r.value, 1200000);
+  assert.equal(r.sd, 72000);
+  assert.deepEqual(
+    [r.surcharges.infrastructure, r.surcharges.cow, r.surcharges.calamity, r.surcharges.total],
+    [9360, 7200, 7200, 23760]
+  );
+  assert.equal(r.rf, 12000);
+  assert.equal(r.csi, 500);
+  assert.equal(r.inspectionFee, 1000);
+  assert.equal(r.total, 109260);
+});
+
+test("e-GRAS pre-valuation, same property: Rs. 11 lakh -> Rs. 1,00,280", () => {
+  const r = run("S2", { marketValue: 1078224, consideration: 1100000 });
+  assert.equal(r.sd, 66000);
+  assert.equal(r.surcharges.total, 21780);
+  assert.equal(r.total, 100280);
+});
+
+test("site inspection fee: none up to Rs. 10 lakh, editable above it", () => {
+  assert.equal(run("S2", { marketValue: 1000000 }).inspectionFee, 0);
+  assert.equal(run("S2", { marketValue: 6000000, inspectionFee: 2500 }).inspectionFee, 2500);
+  assert.equal(run("S193", { amount: 9000000 }).inspectionFee, 0); // mortgage: not inspection-flagged
+});
+
 test("surcharge drops to 30% for values up to Rs. 10 lakh", () => {
   const r = run("S193", { amount: 500000 });
   assert.equal(r.sd, 1250);
@@ -34,12 +62,13 @@ test("sale deed: higher of DLC and consideration, buyer category rate, rebate sh
   assert.equal(male.sd, 300000);
   assert.equal(male.surcharges.total, 99000);
   assert.equal(male.rf, 50000);
-  assert.equal(male.total, 449500);
+  assert.equal(male.inspectionFee, 1000);
+  assert.equal(male.total, 450500);
 
   const female = run("S2", { marketValue: 5000000, consideration: 4500000, category: "female" });
   assert.equal(female.sd, 250000);
-  assert.equal(female.total, 250000 + 82500 + 50000 + 500);
-  assert.equal(female.totalBeforeRebate, 449500);
+  assert.equal(female.total, 250000 + 82500 + 50000 + 500 + 1000);
+  assert.equal(female.totalBeforeRebate, 450500);
   assert.equal(female.categoryRate, 5);
 
   const trans = run("S2", { marketValue: 5000000, category: "transgender" });

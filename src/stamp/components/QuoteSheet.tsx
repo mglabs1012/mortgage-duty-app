@@ -41,6 +41,7 @@ export function QuoteSheet({
     ["Natural calamity surcharge (10%)", result.surcharges.calamity],
     ["Registration fee", result.rf, result.rfWorking],
     ["CSI (copying, scanning & indexing)", result.csi],
+    ...(result.inspectionFee > 0 ? [["Site inspection fee", result.inspectionFee] as [string, number]] : []),
     ...addOns.map((id): [string, number] => [ADD_ONS.find((a) => a.id === id)?.label ?? byId(id)?.name ?? id, addOnTotal([id])]),
   ];
 

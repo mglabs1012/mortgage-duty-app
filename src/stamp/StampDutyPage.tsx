@@ -130,6 +130,7 @@ export default function StampDutyPage() {
       `Surcharge (${Math.round(result.surchargeRate * 100)}%): ${rupees(result.surcharges.total)}`,
       `Registration fee: ${rupees(result.rf)}`,
       `CSI: ${rupees(result.csi)}`,
+      result.inspectionFee > 0 && `Site inspection fee: ${rupees(result.inspectionFee)}`,
       ...addOns.map((id) => `${ADD_ONS.find((a) => a.id === id)?.label}: ${rupees(addOnTotal([id]))}`),
       `*Total payable (approx.): ${rupees(grand)}*`,
       ``,
@@ -230,6 +231,31 @@ export default function StampDutyPage() {
 
                   {showCategory && (
                     <PartyCategoryPicker value={inputs.category} onChange={(c) => setInputs((s) => ({ ...s, category: c }))} />
+                  )}
+
+                  {result && result.inspectionFee > 0 && (
+                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-surface-2 px-4 py-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-ink">Site inspection fee</p>
+                        <p className="text-xs text-muted">
+                          Inspection is {result.inspection?.toLowerCase()} at this value. ₹1,000 is the usual charge; edit if
+                          your office charges a different slab.
+                        </p>
+                      </div>
+                      <div className="flex items-center rounded-xl border border-line bg-surface px-3 py-2 focus-within:border-accent/60">
+                        <span className="mr-1 text-muted">₹</span>
+                        <input
+                          id="f-inspectionFee"
+                          inputMode="numeric"
+                          aria-label="Site inspection fee"
+                          value={result.inspectionFee}
+                          onChange={(e) =>
+                            setInputs((s) => ({ ...s, inspectionFee: Number(e.target.value.replace(/\D/g, "").slice(0, 6) || 0) }))
+                          }
+                          className="w-20 bg-transparent font-display text-base font-bold tabular-nums text-ink outline-none"
+                        />
+                      </div>
+                    </div>
                   )}
 
                   {fields.length > 0 ? (
@@ -400,7 +426,7 @@ export default function StampDutyPage() {
               ["Stamp duty", "Rate from the Fees Master for the document, after rebates and the buyer-category concession."],
               ["Surcharge", "30% of stamp duty for values up to ₹10 lakh or fixed duty; 33% otherwise (infrastructure + cow protection + natural calamity)."],
               ["Registration fee", "Generally 1% of the value; many documents have caps, fixed fees or 20% of stamp duty (leases)."],
-              ["CSI & inspection", "₹500 copying, scanning & indexing on most documents. Site inspection is random above ₹10 lakh and compulsory above ₹50 lakh."],
+              ["CSI & inspection", "₹500 copying, scanning & indexing on most documents. Above ₹10 lakh, inspection-flagged documents (e.g. sale deeds) also carry a site inspection fee, usually ₹1,000."],
             ].map(([t, d], i) => (
               <div key={t}>
                 <p className="font-display text-3xl font-extrabold text-ink/10">0{i + 1}</p>
