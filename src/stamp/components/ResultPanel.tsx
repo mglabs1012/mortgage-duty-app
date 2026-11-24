@@ -145,7 +145,7 @@ export function ResultPanel({
             className="mt-3 font-display text-[2.6rem] font-extrabold leading-none tracking-tight tabular-nums sm:text-[3.4rem]"
           />
           <p className="mt-3 text-sm text-white/70">
-            Stamp duty {rupees(result.sd + result.surcharges.total)} · Registration {rupees(result.rf + result.csi + extras)}
+            Stamp duty {rupees(result.sd + result.surcharges.total)} · Registration {rupees(result.rf + result.csi + result.inspectionFee + extras)}
           </p>
           <AnimatePresence initial={false}>
             {saving > 0 && hasInput && (
@@ -211,6 +211,13 @@ export function ResultPanel({
           />
           <Row label="Registration fee" hint={result.rfWorking} amount={result.rf} before={result.rfBeforeRebate} />
           <Row label="CSI (copying, scanning & indexing)" amount={result.csi} />
+          {result.inspectionFee > 0 && (
+            <Row
+              label="Site inspection fee"
+              hint={`Inspection ${result.inspection?.toLowerCase()} above ₹10 lakh · edit the amount under Values if your office charges differently`}
+              amount={result.inspectionFee}
+            />
+          )}
           {addOns.map((id) => {
             const a = byId(id);
             const label = ADD_ONS.find((x) => x.id === id)?.label ?? a?.name ?? id;

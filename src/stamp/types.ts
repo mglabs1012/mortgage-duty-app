@@ -100,6 +100,8 @@ export interface DutyInputs {
   sdPaid: number;
   count: number;
   category: PartyCategoryId;
+  /** Site inspection fee override; null = use the default when inspection applies. */
+  inspectionFee: number | null;
 }
 
 export type InputField =
@@ -128,6 +130,8 @@ export interface DutyResult {
   rf: number;
   rfBeforeRebate: number;
   csi: number;
+  /** Site inspection fee, charged when inspection applies (value above Rs. 10 lakh) */
+  inspectionFee: number;
   total: number;
   totalBeforeRebate: number;
   /** human-readable explanations of how each figure was reached */

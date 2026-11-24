@@ -49,6 +49,14 @@ export const SURCHARGE = {
   threshold: 10_00_000,
 };
 
+/**
+ * Site inspection fee (मौका निरीक्षण शुल्क). Not stated in the Fees Master.
+ * Rs. 1,000 is what SR Ajmer-II charged on sale deeds valued Rs. 11 lakh and
+ * Rs. 12 lakh (Nov 2026) — charged even though inspection in that band is only
+ * "Random". Higher-value slabs may differ, so the app lets the user edit it.
+ */
+export const SITE_INSPECTION_FEE_DEFAULT = 1000;
+
 /** Site inspection by document value (Fees Master p. 1). */
 export function inspectionStatus(value: number): "Not required" | "Random" | "Compulsory" {
   if (value > 50_00_000) return "Compulsory";
